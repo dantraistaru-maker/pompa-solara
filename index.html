@@ -184,6 +184,10 @@ document.querySelectorAll('input').forEach(el => {
   el.addEventListener('focus', () => editing = true);
   el.addEventListener('blur', () => editing = false);
 });
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
 </script>
 </body>
 </html>
