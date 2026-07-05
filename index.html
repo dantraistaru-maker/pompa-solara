@@ -111,11 +111,11 @@
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
 // ATENTIE: credentialele de mai jos sunt vizibile oricui deschide aceasta pagina publica
-// (View Source). Acceptabil pentru acest proiect (parola dedicata, nu cea de email),
-// dar de stiut - nu refolosi aici o parola importanta.
+// (View Source). Credentiala e restransa la topicul "pompasolara/#" (vezi HiveMQ Access
+// Management), separata de cea folosita de ESP32 - izoleaza expunerea publica de firmware.
 const MQTT_URL = 'wss://59c9a354563a4abbb57553994a6dbbd5.s1.eu.hivemq.cloud:8884/mqtt';
-const MQTT_USER = 'dan.tt@yahoo.com';
-const MQTT_PASS = '26121970aA.';
+const MQTT_USER = 'pompasolara-web';
+const MQTT_PASS = '12345678';
 const STATUS_TOPIC = 'pompasolara/status';
 const SETTINGS_TOPIC = 'pompasolara/settings/set';
 
