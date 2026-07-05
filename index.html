@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pompa Solara">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#2a78d6">
+<title>Pompa Solara</title>
+<style>
+  :root {
+    --surface-page: #f9f9f7;
+    --surface-card: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --accent-track: #b7d3f6;
+    --warning: #fab219;
+    --warning-bg: rgba(250,178,25,0.15);
+    --critical: #d03b3b;
+    --critical-bg: rgba(208,59,59,0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-page: #0d0d0d;
+      --surface-card: #1a1a19;
+      --text-primary: #ffffff;
+      --text-secondary: #c3c2b7;
+      --border: rgba(255,255,255,0.10);
+      --accent: #3987e5;
+      --accent-track: #184f95;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--surface-page);
+    color: var(--text-primary);
+    max-width: 440px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+  }
+  h1 { font-size: 1.4em; font-weight: 600; margin: 0 0 20px; }
+  .card {
+    background: var(--surface-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .stat-label { font-size: 0.85em; color: var(--text-secondary); margin-bottom: 4px; }
+  .stat-value { font-size: 2.6em; font-weight: 600; line-height: 1.1; }
+  .stat-value small { font-size: 0.4em; font-weight: 500; color: var(--text-secondary); }
+  .meter-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .meter-track { height: 12px; border-radius: 6px; background: var(--accent-track); overflow: hidden; }
+  .meter-fill { height: 100%; border-radius: 6px; background: var(--accent); width: 0%; transition: width 0.4s ease; }
+  .badge {
+    display: flex; align-items: center; gap: 6px;
+    border-radius: 999px;
+    padding: 6px 12px; font-size: 0.85em; font-weight: 600; margin-bottom: 16px;
+  }
+  .badge-warning { background: var(--warning-bg); color: var(--text-primary); border: 1px solid var(--warning); }
+  .badge-critical { background: var(--critical-bg); color: var(--text-primary); border: 1px solid var(--critical); }
+  .hidden { display: none; }
+  label { display: block; font-size: 0.85em; color: var(--text-secondary); margin-top: 14px; margin-bottom: 4px; }
+  input {
+    width: 100%; padding: 10px 12px; font-size: 1em; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface-page); color: var(--text-primary);
+  }
+  button {
+    margin-top: 18px; width: 100%; padding: 12px; font-size: 1em; font-weight: 600;
+    color: #fff; background: var(--accent); border: none; border-radius: 10px; cursor: pointer;
+  }
+  button:active { opacity: 0.85; }
+  #msg { text-align: center; margin-top: 10px; font-size: 0.9em; color: var(--text-secondary); min-height: 1.2em; }
+</style>
+</head>
+<body>
+<h1>🌞 Pompa Solara (de la distanta)</h1>
+<div id="connBadge" class="badge badge-critical hidden">⏳ Conectare la broker...</div>
+<div id="testBadge" class="badge badge-warning hidden">⚠ Mod test activ (override manual)</div>
+
+<div class="card">
+  <div class="stat-label">Temperatura colector</div>
+  <div class="stat-value"><span id="temp">--</span><small> °C</small></div>
+</div>
+
+<div class="card">
+  <div class="meter-row">
+    <span class="stat-label">Viteza pompa</span>
+    <span class="stat-label" id="pumpLabel">--%</span>
+  </div>
+  <div class="meter-track"><div class="meter-fill" id="pumpFill"></div></div>
+</div>
+
+<div class="card">
+  <label>Tmin (°C) - pornire pompa</label>
+  <input type="number" step="0.5" id="tMin">
+  <label>Tmax (°C) - viteza maxima</label>
+  <input type="number" step="0.5" id="tMax">
+  <label>PWM minim (%) - viteza la Tmin</label>
+  <input type="number" step="1" id="pwmMin">
+  <button onclick="saveSettings()">Salveaza</button>
+  <div id="msg"></div>
+</div>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+// ATENTIE: credentialele de mai jos sunt vizibile oricui deschide aceasta pagina publica
+// (View Source). Acceptabil pentru acest proiect (parola dedicata, nu cea de email),
+// dar de stiut - nu refolosi aici o parola importanta.
+const MQTT_URL = 'wss://59c9a354563a4abbb57553994a6dbbd5.s1.eu.hivemq.cloud:8884/mqtt';
+const MQTT_USER = 'dan.tt@yahoo.com';
+const MQTT_PASS = '26121970aA.';
+const STATUS_TOPIC = 'pompasolara/status';
+const SETTINGS_TOPIC = 'pompasolara/settings/set';
+
+let editing = false;
+let lastStatus = null;
+
+const connBadge = document.getElementById('connBadge');
+
+const client = mqtt.connect(MQTT_URL, {
+  username: MQTT_USER,
+  password: MQTT_PASS,
+  clientId: 'web-' + Math.random().toString(16).slice(2),
+  reconnectPeriod: 3000
+});
+
+connBadge.classList.remove('hidden');
+
+client.on('connect', () => {
+  connBadge.classList.add('hidden');
+  client.subscribe(STATUS_TOPIC);
+});
+
+client.on('reconnect', () => {
+  connBadge.textContent = '⏳ Conectare la broker...';
+  connBadge.classList.remove('hidden');
+});
+
+client.on('offline', () => {
+  connBadge.textContent = '⚠ Deconectat - reincercare...';
+  connBadge.classList.remove('hidden');
+});
+
+client.on('message', (topic, payload) => {
+  if (topic !== STATUS_TOPIC) return;
+  let d;
+  try { d = JSON.parse(payload.toString()); } catch (e) { return; }
+  lastStatus = d;
+
+  document.getElementById('temp').textContent = d.temperature.toFixed(1);
+  document.getElementById('pumpLabel').textContent = Math.round(d.pumpPercent) + '%';
+  document.getElementById('pumpFill').style.width = Math.round(d.pumpPercent) + '%';
+  document.getElementById('testBadge').classList.toggle('hidden', !d.testOverride);
+  if (!editing) {
+    document.getElementById('tMin').value = d.tMin;
+    document.getElementById('tMax').value = d.tMax;
+    document.getElementById('pwmMin').value = d.pwmMin;
+  }
+});
+
+function saveSettings() {
+  const body = {
+    tMin: parseFloat(document.getElementById('tMin').value),
+    tMax: parseFloat(document.getElementById('tMax').value),
+    pwmMin: parseFloat(document.getElementById('pwmMin').value)
+  };
+  client.publish(SETTINGS_TOPIC, JSON.stringify(body));
+  const msg = document.getElementById('msg');
+  msg.textContent = 'Trimis!';
+  setTimeout(() => msg.textContent = '', 2000);
+}
+
+document.querySelectorAll('input').forEach(el => {
+  el.addEventListener('focus', () => editing = true);
+  el.addEventListener('blur', () => editing = false);
+});
+</script>
+</body>
+</html>
