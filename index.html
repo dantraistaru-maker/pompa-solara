@@ -85,6 +85,7 @@
 <body>
 <h1>🌞 Pompa Solara (de la distanta)</h1>
 <div id="connBadge" class="badge badge-critical hidden">⏳ Conectare la broker...</div>
+<div id="deviceBadge" class="badge badge-critical hidden">⚠ Dispozitiv deconectat - fara date noi</div>
 <div id="testBadge" class="badge badge-warning hidden">⚠ Mod test activ (override manual)</div>
 
 <div class="card">
@@ -124,8 +125,17 @@ const SETTINGS_TOPIC = 'pompasolara/settings/set';
 
 let editing = false;
 let lastStatus = null;
+let lastMessageTime = null;
+const DEVICE_TIMEOUT_MS = 5000; // ESP32 publica la 1s; 5x marja de siguranta
 
 const connBadge = document.getElementById('connBadge');
+const deviceBadge = document.getElementById('deviceBadge');
+
+setInterval(() => {
+  if (lastMessageTime !== null && Date.now() - lastMessageTime > DEVICE_TIMEOUT_MS) {
+    deviceBadge.classList.remove('hidden');
+  }
+}, 1000);
 
 const client = mqtt.connect(MQTT_URL, {
   username: MQTT_USER,
@@ -156,6 +166,8 @@ client.on('message', (topic, payload) => {
   let d;
   try { d = JSON.parse(payload.toString()); } catch (e) { return; }
   lastStatus = d;
+  lastMessageTime = Date.now();
+  deviceBadge.classList.add('hidden');
 
   document.getElementById('temp').textContent = d.temperature.toFixed(1);
   document.getElementById('pumpLabel').textContent = Math.round(d.pumpPercent) + '%';
