@@ -7,139 +7,210 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pompa Solara">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#2a78d6">
+<meta name="theme-color" content="#1f9d55">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
 <title>Pompa Solara</title>
 <style>
   :root {
-    --surface-page: #f9f9f7;
-    --surface-card: #fcfcfb;
-    --text-primary: #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted: #898781;
-    --border: rgba(11,11,11,0.10);
-    --accent: #2a78d6;
-    --accent-track: #b7d3f6;
-    --warning: #fab219;
-    --warning-bg: rgba(250,178,25,0.15);
+    --surface-page: #f3f6f3;
+    --surface-card: #ffffff;
+    --surface-inset: #eaefe9;
+    --text-primary: #10140f;
+    --text-secondary: #4c564c;
+    --text-muted: #838d82;
+    --border: rgba(16,20,15,0.10);
+    --accent: #1f9d55;
+    --accent-track: #bfe3cd;
+    --warning: #c98a12;
+    --warning-bg: rgba(201,138,18,0.14);
     --critical: #d03b3b;
     --critical-bg: rgba(208,59,59,0.12);
+    --state-cold: #2f9e44;
+    --state-mid: #2a78d6;
+    --state-hot: #d03b3b;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --surface-page: #0d0d0d;
-      --surface-card: #1a1a19;
-      --text-primary: #ffffff;
-      --text-secondary: #c3c2b7;
-      --text-muted: #898781;
-      --border: rgba(255,255,255,0.10);
-      --accent: #3987e5;
-      --accent-track: #184f95;
+      --surface-page: #0d100d;
+      --surface-card: #171b16;
+      --surface-inset: #21261f;
+      --text-primary: #f2f4f1;
+      --text-secondary: #aab4a9;
+      --text-muted: #7c867b;
+      --border: rgba(255,255,255,0.09);
+      --accent: #3ecf70;
+      --accent-track: #1f5c37;
+      --warning: #e0a83a;
+      --warning-bg: rgba(224,168,58,0.16);
+      --critical: #e05555;
+      --critical-bg: rgba(224,85,85,0.16);
+      --state-cold: #3ecf70;
+      --state-mid: #4c92e8;
+      --state-hot: #e05555;
     }
+  }
+  :root[data-theme="light"] {
+    --surface-page: #f3f6f3; --surface-card: #ffffff; --surface-inset: #eaefe9;
+    --text-primary: #10140f; --text-secondary: #4c564c; --text-muted: #838d82;
+    --border: rgba(16,20,15,0.10); --accent: #1f9d55; --accent-track: #bfe3cd;
+    --warning: #c98a12; --warning-bg: rgba(201,138,18,0.14);
+    --critical: #d03b3b; --critical-bg: rgba(208,59,59,0.12);
+    --state-cold: #2f9e44; --state-mid: #2a78d6; --state-hot: #d03b3b;
+  }
+  :root[data-theme="dark"] {
+    --surface-page: #0d100d; --surface-card: #171b16; --surface-inset: #21261f;
+    --text-primary: #f2f4f1; --text-secondary: #aab4a9; --text-muted: #7c867b;
+    --border: rgba(255,255,255,0.09); --accent: #3ecf70; --accent-track: #1f5c37;
+    --warning: #e0a83a; --warning-bg: rgba(224,168,58,0.16);
+    --critical: #e05555; --critical-bg: rgba(224,85,85,0.16);
+    --state-cold: #3ecf70; --state-mid: #4c92e8; --state-hot: #e05555;
   }
   * { box-sizing: border-box; }
   body {
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     background: var(--surface-page);
     color: var(--text-primary);
-    max-width: 440px;
+    max-width: 460px;
     margin: 0 auto;
-    padding: 24px 16px 48px;
+    padding: 18px 14px 44px;
   }
-  h1 { font-size: 1.4em; font-weight: 600; margin: 0 0 20px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  h1 { font-size: 1.2em; font-weight: 700; margin: 0; }
+  .theme-btn {
+    border: 1px solid var(--border); background: var(--surface-card); color: var(--text-secondary);
+    border-radius: 10px; padding: 8px 12px; font-size: 0.75em; font-weight: 700; letter-spacing: 0.03em;
+    cursor: pointer; min-width: 64px;
+  }
+  .theme-btn:active { opacity: 0.8; }
   .card {
     background: var(--surface-card);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
+    padding: 18px;
+    margin-bottom: 14px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    animation: rise 0.35s ease both;
   }
-  .card:nth-of-type(2) { animation-delay: 0.05s; }
-  .card:nth-of-type(3) { animation-delay: 0.1s; }
-  @keyframes rise {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+  .card-title { font-size: 0.95em; font-weight: 700; margin-bottom: 2px; }
+  .card-desc { font-size: 0.8em; color: var(--text-secondary); margin-bottom: 6px; line-height: 1.4; }
+  .stat-label { font-size: 0.82em; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+  .stat-value { font-size: 2.8em; font-weight: 700; line-height: 1.05; }
+  .stat-value small { font-size: 0.34em; font-weight: 600; color: var(--text-secondary); }
+  .state-label { font-size: 0.95em; font-weight: 700; margin-top: 2px; transition: color 0.4s ease; }
+  .range-row { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+  .range-end { font-size: 0.72em; color: var(--text-muted); font-weight: 600; min-width: 26px; text-align: center; }
+  .range-track { position: relative; flex: 1; height: 8px; border-radius: 4px; background: var(--surface-inset); }
+  .range-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 4px; background: var(--accent-track); width: 0%; transition: width 0.5s ease; }
+  .range-marker {
+    position: absolute; top: 50%; left: 0%; width: 13px; height: 13px; margin-left: -6.5px;
+    border-radius: 50%; background: var(--accent); border: 2px solid var(--surface-card);
+    transform: translateY(-50%); box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: left 0.5s ease;
   }
-  .stat-label { font-size: 0.85em; color: var(--text-secondary); margin-bottom: 4px; }
-  .stat-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
-  .stat-value { font-size: 3em; font-weight: 600; line-height: 1.1; transition: color 0.4s ease; }
-  .stat-value small { font-size: 0.36em; font-weight: 500; color: var(--text-secondary); }
-  .sparkline { flex: 0 0 110px; height: 36px; overflow: visible; }
-  .spark-line { fill: none; stroke: var(--text-muted); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-  .zone-row { display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 0.9em; font-weight: 600; color: var(--text-secondary); }
-  .zone-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: var(--accent-track); transition: background-color 0.5s ease; }
+  .mini-stats { display: flex; gap: 10px; margin-top: 14px; }
+  .mini-stat { flex: 1; background: var(--surface-inset); border-radius: 10px; padding: 8px 10px; }
+  .mini-label { display: block; font-size: 0.68em; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+  .mini-value { font-size: 1.05em; font-weight: 700; }
   .meter-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-  .meter-track {
-    position: relative;
-    height: 14px;
-    border-radius: 7px;
-    overflow: hidden;
-    background: linear-gradient(90deg, var(--accent) 0%, var(--warning) 55%, var(--critical) 100%);
-  }
-  .meter-mask {
-    position: absolute; top: 0; right: 0; height: 100%; width: 100%;
-    background: var(--accent-track);
-    transition: width 0.5s ease;
-  }
+  .meter-track { position: relative; height: 14px; border-radius: 7px; overflow: hidden; background: var(--surface-inset); }
+  .meter-fill { height: 100%; width: 0%; border-radius: 7px; background: var(--accent); transition: width 0.5s ease; }
   .badge {
     display: flex; align-items: center; gap: 6px;
     border-radius: 999px;
-    padding: 6px 12px; font-size: 0.85em; font-weight: 600; margin-bottom: 16px;
+    padding: 6px 12px; font-size: 0.85em; font-weight: 600; margin-bottom: 14px;
   }
   .badge-warning { background: var(--warning-bg); color: var(--text-primary); border: 1px solid var(--warning); }
   .badge-critical { background: var(--critical-bg); color: var(--text-primary); border: 1px solid var(--critical); }
   .hidden { display: none; }
-  label { display: block; font-size: 0.85em; color: var(--text-secondary); margin-top: 14px; margin-bottom: 4px; }
+  .seg { display: flex; background: var(--surface-inset); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 14px; }
+  .seg-btn {
+    flex: 1; border: none; background: transparent; color: var(--text-secondary);
+    font-weight: 700; font-size: 0.85em; padding: 10px 6px; border-radius: 9px; cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .seg-btn.active { background: var(--surface-card); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  label { display: block; font-size: 0.83em; color: var(--text-secondary); margin-top: 14px; margin-bottom: 4px; font-weight: 600; }
   input {
     width: 100%; padding: 10px 12px; font-size: 1em; border-radius: 10px;
     border: 1px solid var(--border); background: var(--surface-page); color: var(--text-primary);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
-  input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(42,120,214,0.18); }
-  button {
-    margin-top: 18px; width: 100%; padding: 12px; font-size: 1em; font-weight: 600;
+  input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(31,157,85,0.18); }
+  button.save-btn {
+    margin-top: 18px; width: 100%; padding: 12px; font-size: 1em; font-weight: 700;
     color: #fff; background: var(--accent); border: none; border-radius: 10px; cursor: pointer;
   }
-  button:active { opacity: 0.85; }
-  #msg { text-align: center; margin-top: 10px; font-size: 0.9em; color: var(--text-secondary); min-height: 1.2em; }
+  button.save-btn:active { opacity: 0.85; }
+  .msg { text-align: center; margin-top: 10px; font-size: 0.9em; color: var(--text-secondary); min-height: 1.2em; }
 </style>
 </head>
 <body>
-<h1>🌞 Pompa Solara (de la distanta)</h1>
-<div id="connBadge" class="badge badge-critical hidden">⏳ Conectare la broker...</div>
-<div id="deviceBadge" class="badge badge-critical hidden">⚠ Dispozitiv deconectat - fara date noi</div>
-<div id="testBadge" class="badge badge-warning hidden">⚠ Mod test activ (override manual)</div>
+<div class="topbar">
+  <h1>&#127774; Pompa Solara</h1>
+  <button class="theme-btn" id="themeBtn" onclick="cycleTheme()">AUTO</button>
+</div>
+<div id="connBadge" class="badge badge-critical hidden">Conectare la broker...</div>
+<div id="deviceBadge" class="badge badge-critical hidden">Dispozitiv deconectat - fara date noi</div>
+<div id="testBadge" class="badge badge-warning hidden">Mod test activ (override manual)</div>
 
 <div class="card">
-  <div class="stat-label">🌡️ Temperatura colector</div>
-  <div class="stat-row">
-    <div class="stat-value"><span id="temp">--</span><small> °C</small></div>
-    <svg id="spark" class="sparkline" viewBox="0 0 110 36" preserveAspectRatio="none"></svg>
+  <div class="stat-label">Temperatura colector</div>
+  <div class="stat-value"><span id="temp">--</span><small> &deg;C</small></div>
+  <div class="state-label" id="stateLabel">--</div>
+
+  <div class="range-row">
+    <span class="range-end" id="rangeMinLabel">--&deg;</span>
+    <div class="range-track"><div class="range-fill" id="rangeFill"></div><div class="range-marker" id="rangeMarker"></div></div>
+    <span class="range-end" id="rangeMaxLabel">--&deg;</span>
   </div>
-  <div class="zone-row"><span class="zone-dot" id="zoneDot"></span><span id="zoneLabel">--</span></div>
+
+  <div class="mini-stats">
+    <div class="mini-stat"><span class="mini-label">Brut</span><span class="mini-value" id="tempRaw">--</span></div>
+    <div class="mini-stat"><span class="mini-label">Filtrat</span><span class="mini-value" id="tempFiltered">--</span></div>
+  </div>
 </div>
 
 <div class="card">
   <div class="meter-row">
-    <span class="stat-label">🌀 Viteza pompa</span>
+    <span class="stat-label">Viteza pompa</span>
     <span class="stat-label" id="pumpLabel">--%</span>
   </div>
-  <div class="meter-track"><div class="meter-mask" id="pumpMask"></div></div>
+  <div class="meter-track"><div class="meter-fill" id="pumpFill"></div></div>
 </div>
 
-<div class="card">
-  <label>Tmin (°C) - pornire pompa</label>
-  <input type="number" step="0.5" id="tMin">
-  <label>Tmax (°C) - viteza maxima</label>
-  <input type="number" step="0.5" id="tMax">
-  <label>PWM minim (%) - viteza la Tmin</label>
-  <input type="number" step="1" id="pwmMin">
-  <button onclick="saveSettings()">Salveaza</button>
-  <div id="msg"></div>
+<div class="seg" role="tablist">
+  <button class="seg-btn active" data-tab="curve" onclick="showTab('curve')">Curba PWM</button>
+  <button class="seg-btn" data-tab="protect" onclick="showTab('protect')">Protectie pompa</button>
+</div>
+
+<div id="tab-curve">
+  <div class="card">
+    <div class="card-title">Curba de viteza</div>
+    <div class="card-desc">Determina viteza pompei in functie de temperatura colectorului.</div>
+    <label>Tmin (&deg;C) - pornire pompa</label>
+    <input type="number" step="0.5" id="tMin">
+    <label>Tmax (&deg;C) - viteza maxima</label>
+    <input type="number" step="0.5" id="tMax">
+    <label>PWM minim (%) - viteza la Tmin</label>
+    <input type="number" step="1" id="pwmMin">
+    <button class="save-btn" onclick="saveSettings()">Salveaza</button>
+    <div class="msg" id="msg"></div>
+  </div>
+</div>
+
+<div id="tab-protect" class="hidden">
+  <div class="card">
+    <div class="card-title">Protectie mecanica pompa</div>
+    <div class="card-desc">Limiteaza cat de des si cat de brusc isi schimba pompa turatia, ca sa reduca uzura mecanica.</div>
+    <label>Pas viteza (%) - grila de trepte (ex. 10 = 0,10,20...100)</label>
+    <input type="number" step="1" min="1" max="50" id="pwmStep">
+    <label>Histerezis (%) - zona moarta intre trepte</label>
+    <input type="number" step="0.5" min="0" max="100" id="hysteresis">
+    <label>Filtru temperatura (0,01-1) - mai mic = mai lin, mai lent</label>
+    <input type="number" step="0.05" min="0.01" max="1" id="tempFilterAlpha">
+    <button class="save-btn" onclick="saveProtection()">Salveaza</button>
+    <div class="msg" id="msgProtection"></div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
@@ -152,14 +223,12 @@ const MQTT_USER = 'pompasolara-web';
 const MQTT_PASS = '12345678';
 const STATUS_TOPIC = 'pompasolara/status';
 const SETTINGS_TOPIC = 'pompasolara/settings/set';
+const THEME_KEY = 'pompaTheme';
 
 let editing = false;
 let lastStatus = null;
 let lastMessageTime = null;
 const DEVICE_TIMEOUT_MS = 5000; // ESP32 publica la 1s; 5x marja de siguranta
-const TEMP_HISTORY_MAX = 40; // ~40s de istoric live la 1 citire/s
-
-let tempHistory = [];
 
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -168,14 +237,12 @@ function hexToRgb(hex) {
   const n = parseInt(hex.replace('#', ''), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
-// Culoare de severitate (accent -> warning -> critical) pe baza pozitiei in curba Tmin..Tmax,
-// aceleasi trei culori documentate folosite si pentru gradientul meterului de viteza.
-function severityColor(ratio) {
+function stateColor(ratio) {
   ratio = Math.max(0, Math.min(1, ratio));
   const stops = [
-    { p: 0, c: hexToRgb(cssVar('--accent')) },
-    { p: 0.55, c: hexToRgb(cssVar('--warning')) },
-    { p: 1, c: hexToRgb(cssVar('--critical')) }
+    { p: 0, c: hexToRgb(cssVar('--state-cold')) },
+    { p: 0.5, c: hexToRgb(cssVar('--state-mid')) },
+    { p: 1, c: hexToRgb(cssVar('--state-hot')) }
   ];
   let a = stops[0], b = stops[stops.length - 1];
   for (let i = 0; i < stops.length - 1; i++) {
@@ -185,35 +252,41 @@ function severityColor(ratio) {
   const rgb = a.c.map((v, i) => Math.round(v + (b.c[i] - v) * t));
   return 'rgb(' + rgb.join(',') + ')';
 }
-
-function updateZone(temp, tMinV, tMaxV) {
-  const ratio = (temp - tMinV) / ((tMaxV - tMinV) || 1);
-  const color = severityColor(ratio);
-  document.getElementById('zoneDot').style.background = color;
-  const label = document.getElementById('zoneLabel');
-  if (temp < tMinV) label.textContent = 'Inactiv';
+function updateState(temp, tMinV, tMaxV) {
+  const ratio = Math.max(0, Math.min(1, (temp - tMinV) / ((tMaxV - tMinV) || 1)));
+  const color = stateColor(ratio);
+  const label = document.getElementById('stateLabel');
+  label.style.color = color;
+  if (temp < tMinV) label.textContent = 'Inactiva';
   else if (temp >= tMaxV) label.textContent = 'Viteza maxima';
   else label.textContent = 'Incalzire';
-  return color;
-}
 
-function renderSparkline(dotColor) {
-  const svg = document.getElementById('spark');
-  if (tempHistory.length < 2) { svg.innerHTML = ''; return; }
-  const w = 110, h = 36, pad = 4;
-  const min = Math.min(...tempHistory), max = Math.max(...tempHistory);
-  const range = (max - min) || 1;
-  const step = (w - pad * 2) / (tempHistory.length - 1);
-  const pts = tempHistory.map((t, i) => [
-    pad + i * step,
-    pad + (1 - (t - min) / range) * (h - pad * 2)
-  ]);
-  const points = pts.map(p => p.join(',')).join(' ');
-  const last = pts[pts.length - 1];
-  svg.innerHTML =
-    '<polyline class="spark-line" points="' + points + '"/>' +
-    '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="4" fill="' + dotColor + '"/>';
+  document.getElementById('rangeFill').style.width = (ratio * 100) + '%';
+  document.getElementById('rangeMarker').style.left = (ratio * 100) + '%';
+  document.getElementById('rangeMinLabel').textContent = Math.round(tMinV) + '°';
+  document.getElementById('rangeMaxLabel').textContent = Math.round(tMaxV) + '°';
 }
+function showTab(name) {
+  document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.getElementById('tab-curve').classList.toggle('hidden', name !== 'curve');
+  document.getElementById('tab-protect').classList.toggle('hidden', name !== 'protect');
+}
+function applyTheme(mode) {
+  if (mode === 'light' || mode === 'dark') {
+    document.documentElement.setAttribute('data-theme', mode);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  document.getElementById('themeBtn').textContent = mode.toUpperCase();
+}
+function cycleTheme() {
+  const order = ['auto', 'light', 'dark'];
+  const current = localStorage.getItem(THEME_KEY) || 'auto';
+  const next = order[(order.indexOf(current) + 1) % order.length];
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+applyTheme(localStorage.getItem(THEME_KEY) || 'auto');
 
 const connBadge = document.getElementById('connBadge');
 const deviceBadge = document.getElementById('deviceBadge');
@@ -239,12 +312,12 @@ client.on('connect', () => {
 });
 
 client.on('reconnect', () => {
-  connBadge.textContent = '⏳ Conectare la broker...';
+  connBadge.textContent = 'Conectare la broker...';
   connBadge.classList.remove('hidden');
 });
 
 client.on('offline', () => {
-  connBadge.textContent = '⚠ Deconectat - reincercare...';
+  connBadge.textContent = 'Deconectat - reincercare...';
   connBadge.classList.remove('hidden');
 });
 
@@ -257,32 +330,43 @@ client.on('message', (topic, payload) => {
   deviceBadge.classList.add('hidden');
 
   document.getElementById('temp').textContent = d.temperature.toFixed(1);
+  document.getElementById('tempRaw').textContent = d.temperature.toFixed(1) + '°';
+  document.getElementById('tempFiltered').textContent = (d.filteredTemperature !== undefined ? d.filteredTemperature : d.temperature).toFixed(1) + '°';
   document.getElementById('pumpLabel').textContent = Math.round(d.pumpPercent) + '%';
-  document.getElementById('pumpMask').style.width = (100 - Math.round(d.pumpPercent)) + '%';
+  document.getElementById('pumpFill').style.width = Math.round(d.pumpPercent) + '%';
   document.getElementById('testBadge').classList.toggle('hidden', !d.testOverride);
 
-  tempHistory.push(d.temperature);
-  if (tempHistory.length > TEMP_HISTORY_MAX) tempHistory.shift();
-  const zoneColor = updateZone(d.temperature, d.tMin, d.tMax);
-  renderSparkline(zoneColor);
+  updateState(d.temperature, d.tMin, d.tMax);
 
   if (!editing) {
     document.getElementById('tMin').value = d.tMin;
     document.getElementById('tMax').value = d.tMax;
     document.getElementById('pwmMin').value = d.pwmMin;
+    document.getElementById('pwmStep').value = d.pwmStep;
+    document.getElementById('hysteresis').value = d.hysteresis;
+    document.getElementById('tempFilterAlpha').value = d.tempFilterAlpha;
   }
 });
 
+function publishSettings(body, msgId) {
+  client.publish(SETTINGS_TOPIC, JSON.stringify(body));
+  const msg = document.getElementById(msgId);
+  msg.textContent = 'Trimis!';
+  setTimeout(() => msg.textContent = '', 2000);
+}
 function saveSettings() {
-  const body = {
+  publishSettings({
     tMin: parseFloat(document.getElementById('tMin').value),
     tMax: parseFloat(document.getElementById('tMax').value),
     pwmMin: parseFloat(document.getElementById('pwmMin').value)
-  };
-  client.publish(SETTINGS_TOPIC, JSON.stringify(body));
-  const msg = document.getElementById('msg');
-  msg.textContent = 'Trimis!';
-  setTimeout(() => msg.textContent = '', 2000);
+  }, 'msg');
+}
+function saveProtection() {
+  publishSettings({
+    pwmStep: parseFloat(document.getElementById('pwmStep').value),
+    hysteresis: parseFloat(document.getElementById('hysteresis').value),
+    tempFilterAlpha: parseFloat(document.getElementById('tempFilterAlpha').value)
+  }, 'msgProtection');
 }
 
 document.querySelectorAll('input').forEach(el => {

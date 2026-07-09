@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<title>Generator iconita Pompa Solara</title>
+<style>
+  body { font-family: system-ui, sans-serif; text-align: center; padding: 24px; }
+  canvas { border-radius: 20%; margin: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  button { display: block; margin: 8px auto; padding: 10px 20px; font-size: 1em; cursor: pointer; }
+</style>
+</head>
+<body>
+<h2>Iconita Pompa Solara</h2>
+<p>Apasa fiecare buton ca sa descarci imaginea, apoi salveaz-o in folderul <code>web/</code> cu numele indicat.</p>
+
+<canvas id="c512" width="512" height="512"></canvas>
+<br><button onclick="download('c512','icon-512.png')">Descarca icon-512.png</button>
+
+<canvas id="c192" width="192" height="192"></canvas>
+<br><button onclick="download('c192','icon-192.png')">Descarca icon-192.png</button>
+
+<canvas id="c180" width="180" height="180"></canvas>
+<br><button onclick="download('c180','icon-180.png')">Descarca icon-180.png (Apple)</button>
+
+<script>
+function draw(id, size) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#2a78d6';
+  ctx.fillRect(0, 0, size, size);
+  ctx.font = (size * 0.6) + 'px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🌞', size / 2, size * 0.56);
+}
+function download(id, filename) {
+  const canvas = document.getElementById(id);
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+draw('c512', 512);
+draw('c192', 192);
+draw('c180', 180);
+</script>
+</body>
+</html>
