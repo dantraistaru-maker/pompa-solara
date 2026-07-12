@@ -497,9 +497,19 @@
 <div id="section-istoric" class="hidden">
 <div id="histBadge" class="badge badge-warning">Se incarca istoricul...</div>
 <div class="card">
-  <div class="card-title">Istoric temperaturi (ultimele 24h)</div>
-  <div class="card-desc">T1retur (ESP32) apare gol pana se conecteaza placa la raportarea catre server.</div>
-  <div class="hist-legend" id="histLegend"></div>
+  <div class="card-title" id="histTitle">Istoric temperaturi (ultimele 24h)</div>
+  <div class="card-desc">T1<sub>retur</sub> (ESP32) apare gol pana se conecteaza placa la raportarea catre server.</div>
+
+  <label>De la</label>
+  <input type="datetime-local" id="histFromInput">
+  <label>Pana la</label>
+  <input type="datetime-local" id="histToInput">
+  <div style="display:flex; gap:8px; margin-top:14px;">
+    <button class="save-btn" style="margin-top:0; flex:1;" onclick="applyHistFilter()">Aplica filtru</button>
+    <button class="save-btn" style="margin-top:0; flex:1; background:var(--surface-inset); color:var(--text-primary);" onclick="resetHistFilter()">Ultimele 24h</button>
+  </div>
+
+  <div class="hist-legend" id="histLegend" style="margin-top:16px;"></div>
   <div class="hist-chart-wrap">
     <svg id="histChart" viewBox="0 0 380 220"></svg>
     <div class="hist-tooltip" id="histTooltip"></div>
@@ -828,7 +838,7 @@ sr223TempInput.addEventListener('blur', () => sr223Editing = false);
 // ================= Istoric (grafic comparativ temperaturi) =================
 const HIST_SERIES = [
   { key: 't1',  label: 'T1 Colector',   color: '--hist-t1'  },
-  { key: 't1r', label: 'T1retur ESP32', color: '--hist-t1r' },
+  { key: 't1r', label: 'T1<sub>retur</sub> ESP32', color: '--hist-t1r' },
   { key: 't2',  label: 'T2 Boiler jos', color: '--hist-t2'  },
   { key: 't3',  label: 'T3 Boiler sus', color: '--hist-t3'  },
   { key: 't4',  label: 'T4 Buffer',     color: '--hist-t4'  },
@@ -837,11 +847,62 @@ const HIST_POLL_MS = 60000;
 let histPollTimer = null;
 let histVisible = { t1: true, t1r: true, t2: true, t3: true, t4: true };
 let histData = null;
+let histFilterFrom = null; // null => mod implicit "ultimele 24h"
+let histFilterTo = null;
+let histRangeFrom = null;  // intervalul REAL folosit la ultima citire reusita (pentru randare)
+let histRangeTo = null;
+
+function toDatetimeLocalValue(ms) {
+  const d = new Date(ms);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+document.getElementById('histFromInput').value = toDatetimeLocalValue(Date.now() - 24 * 3600 * 1000);
+document.getElementById('histToInput').value = toDatetimeLocalValue(Date.now());
+
+function applyHistFilter() {
+  const fromVal = document.getElementById('histFromInput').value;
+  const toVal = document.getElementById('histToInput').value;
+  const badge = document.getElementById('histBadge');
+  if (!fromVal || !toVal) return;
+  const from = new Date(fromVal).getTime();
+  const to = new Date(toVal).getTime();
+  if (!(to > from)) {
+    badge.textContent = 'Intervalul selectat este invalid (sfarsitul trebuie sa fie dupa inceput).';
+    badge.classList.remove('hidden');
+    return;
+  }
+  histFilterFrom = from;
+  histFilterTo = to;
+  fetchHistory();
+}
+
+function resetHistFilter() {
+  histFilterFrom = null;
+  histFilterTo = null;
+  document.getElementById('histFromInput').value = toDatetimeLocalValue(Date.now() - 24 * 3600 * 1000);
+  document.getElementById('histToInput').value = toDatetimeLocalValue(Date.now());
+  fetchHistory();
+}
 
 async function fetchHistory() {
   const badge = document.getElementById('histBadge');
+  const title = document.getElementById('histTitle');
   try {
-    const res = await fetch(SR223_WORKER + '/history?hours=24', { headers: { 'X-Proxy-Token': SR223_TOKEN } });
+    let url;
+    if (histFilterFrom && histFilterTo) {
+      histRangeFrom = histFilterFrom;
+      histRangeTo = histFilterTo;
+      url = `${SR223_WORKER}/history?from=${histRangeFrom}&to=${histRangeTo}`;
+      title.textContent = 'Istoric temperaturi (interval selectat)';
+    } else {
+      histRangeTo = Date.now();
+      histRangeFrom = histRangeTo - 24 * 3600 * 1000;
+      url = SR223_WORKER + '/history?hours=24';
+      title.textContent = 'Istoric temperaturi (ultimele 24h)';
+    }
+    const res = await fetch(url, { headers: { 'X-Proxy-Token': SR223_TOKEN } });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     histData = await res.json();
     badge.classList.add('hidden');
@@ -882,13 +943,14 @@ function renderHistChart() {
   emptyMsg.classList.add('hidden');
 
   const W = 380, H = 220, PAD_L = 32, PAD_R = 8, PAD_T = 10, PAD_B = 20;
-  const now = Date.now();
-  const from = now - 24 * 3600 * 1000;
+  const from = histRangeFrom;
+  const to = histRangeTo;
+  const span = (to - from) || 1;
 
   const allVals = activeSeries.flatMap((s) => histData[s.key].map((p) => p[1]));
   const minV = Math.floor(Math.min(...allVals) / 5) * 5 - 2;
   const maxV = Math.ceil(Math.max(...allVals) / 5) * 5 + 2;
-  const x = (t) => PAD_L + ((t - from) / (now - from)) * (W - PAD_L - PAD_R);
+  const x = (t) => PAD_L + ((t - from) / span) * (W - PAD_L - PAD_R);
   const y = (v) => PAD_T + (1 - (v - minV) / ((maxV - minV) || 1)) * (H - PAD_T - PAD_B);
 
   let html = '';
@@ -899,17 +961,20 @@ function renderHistChart() {
     html += `<line class="hist-gridline" x1="${PAD_L}" y1="${yy}" x2="${W - PAD_R}" y2="${yy}"/>`;
     html += `<text class="hist-axis-label" x="${PAD_L - 5}" y="${yy + 3}" text-anchor="end">${Math.round(v)}&deg;</text>`;
   }
-  for (let h = 0; h <= 24; h += 6) {
-    const t = from + h * 3600 * 1000;
-    html += `<text class="hist-axis-label" x="${x(t)}" y="${H - 5}" text-anchor="middle">-${24 - h}h</text>`;
+  const xSteps = 4;
+  for (let i = 0; i <= xSteps; i++) {
+    const t = from + (i / xSteps) * span;
+    const label = new Date(t).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+    html += `<text class="hist-axis-label" x="${x(t)}" y="${H - 5}" text-anchor="middle">${label}</text>`;
   }
 
   activeSeries.forEach((s) => {
-    const pts = histData[s.key].filter((p) => p[0] >= from).map((p) => `${x(p[0])},${y(p[1])}`).join(' ');
-    if (!pts) return;
+    const seriesPts = histData[s.key].filter((p) => p[0] >= from && p[0] <= to);
+    if (seriesPts.length === 0) return;
+    const pts = seriesPts.map((p) => `${x(p[0])},${y(p[1])}`).join(' ');
     const color = cssVar(s.color);
     html += `<polyline fill="none" stroke="${color}" stroke-width="2" points="${pts}"/>`;
-    const last = histData[s.key][histData[s.key].length - 1];
+    const last = seriesPts[seriesPts.length - 1];
     html += `<circle cx="${x(last[0])}" cy="${y(last[1])}" r="3.2" fill="${color}"/>`;
   });
   html += `<line class="hist-crosshair" id="histCrosshair" x1="0" y1="${PAD_T}" x2="0" y2="${H - PAD_B}"/>`;
@@ -918,11 +983,15 @@ function renderHistChart() {
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
   const tooltip = document.getElementById('histTooltip');
-  svg.onmousemove = (e) => {
+  const crosshair = document.getElementById('histCrosshair');
+
+  // Comuna pentru mouse (hover) si touch (glisare) - pe telefon, tine degetul apasat si
+  // gliseaza pentru a citi valorile in timp real, nu doar un singur "tap" static.
+  function updateCrosshair(clientX) {
     const rect = svg.getBoundingClientRect();
-    const px = ((e.clientX - rect.left) / rect.width) * W;
-    const t = from + ((px - PAD_L) / (W - PAD_L - PAD_R)) * (now - from);
-    const crosshair = document.getElementById('histCrosshair');
+    let px = ((clientX - rect.left) / rect.width) * W;
+    px = Math.max(PAD_L, Math.min(W - PAD_R, px));
+    const t = from + ((px - PAD_L) / (W - PAD_L - PAD_R)) * span;
     crosshair.setAttribute('x1', px);
     crosshair.setAttribute('x2', px);
     crosshair.style.opacity = 1;
@@ -940,11 +1009,17 @@ function renderHistChart() {
     tooltip.style.opacity = 1;
     tooltip.style.left = Math.min(px + 10, W - 150) + 'px';
     tooltip.style.top = '4px';
-  };
-  svg.onmouseleave = () => {
-    document.getElementById('histCrosshair').style.opacity = 0;
+  }
+  function hideCrosshair() {
+    crosshair.style.opacity = 0;
     tooltip.style.opacity = 0;
-  };
+  }
+
+  svg.onmousemove = (e) => updateCrosshair(e.clientX);
+  svg.onmouseleave = hideCrosshair;
+  svg.ontouchstart = (e) => { e.preventDefault(); updateCrosshair(e.touches[0].clientX); };
+  svg.ontouchmove = (e) => { e.preventDefault(); updateCrosshair(e.touches[0].clientX); };
+  svg.ontouchend = hideCrosshair;
 }
 
 function showSection(name) {
