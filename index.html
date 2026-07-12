@@ -30,6 +30,21 @@
     --state-cold: #2f9e44;
     --state-mid: #2a78d6;
     --state-hot: #d03b3b;
+    --cat-blue: #2a78d6;
+    --cat-aqua: #1baf7a;
+    --cat-yellow: #eda100;
+    --cat-violet: #4a3aa7;
+    --cat-red: #e34948;
+    --cat-orange: #eb6834;
+    --status-good: #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical: #d03b3b;
+    --hist-t1: #e34948;
+    --hist-t1r: #2a78d6;
+    --hist-t2: #f0a868;
+    --hist-t3: #d9660a;
+    --hist-t4: #12873f;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -49,6 +64,17 @@
       --state-cold: #3ecf70;
       --state-mid: #4c92e8;
       --state-hot: #e05555;
+      --cat-blue: #3987e5;
+      --cat-aqua: #199e70;
+      --cat-yellow: #c98500;
+      --cat-violet: #9085e9;
+      --cat-red: #e66767;
+      --cat-orange: #d95926;
+      --hist-t1: #e66767;
+      --hist-t1r: #3987e5;
+      --hist-t2: #f2b578;
+      --hist-t3: #e2760f;
+      --hist-t4: #1f9e4c;
     }
   }
   :root[data-theme="light"] {
@@ -58,6 +84,9 @@
     --warning: #c98a12; --warning-bg: rgba(201,138,18,0.14);
     --critical: #d03b3b; --critical-bg: rgba(208,59,59,0.12);
     --state-cold: #2f9e44; --state-mid: #2a78d6; --state-hot: #d03b3b;
+    --cat-blue: #2a78d6; --cat-aqua: #1baf7a; --cat-yellow: #eda100;
+    --cat-violet: #4a3aa7; --cat-red: #e34948; --cat-orange: #eb6834;
+    --hist-t1: #e34948; --hist-t1r: #2a78d6; --hist-t2: #f0a868; --hist-t3: #d9660a; --hist-t4: #12873f;
   }
   :root[data-theme="dark"] {
     --surface-page: #0d100d; --surface-card: #171b16; --surface-inset: #21261f;
@@ -66,6 +95,9 @@
     --warning: #e0a83a; --warning-bg: rgba(224,168,58,0.16);
     --critical: #e05555; --critical-bg: rgba(224,85,85,0.16);
     --state-cold: #3ecf70; --state-mid: #4c92e8; --state-hot: #e05555;
+    --cat-blue: #3987e5; --cat-aqua: #199e70; --cat-yellow: #c98500;
+    --cat-violet: #9085e9; --cat-red: #e66767; --cat-orange: #d95926;
+    --hist-t1: #e66767; --hist-t1r: #3987e5; --hist-t2: #f2b578; --hist-t3: #e2760f; --hist-t4: #1f9e4c;
   }
   * { box-sizing: border-box; }
   body {
@@ -84,6 +116,8 @@
     cursor: pointer; min-width: 64px;
   }
   .theme-btn:active { opacity: 0.8; }
+  .icon { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round; vertical-align: -3px; display: inline-block; flex-shrink: 0; }
   .card {
     background: var(--surface-card);
     border: 1px solid var(--border);
@@ -92,7 +126,7 @@
     margin-bottom: 14px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
-  .card-title { font-size: 0.95em; font-weight: 700; margin-bottom: 2px; }
+  .card-title { font-size: 0.95em; font-weight: 700; margin-bottom: 2px; display: flex; align-items: center; gap: 7px; }
   .card-desc { font-size: 0.8em; color: var(--text-secondary); margin-bottom: 6px; line-height: 1.4; }
   .stat-label { font-size: 0.82em; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
   .stat-value { font-size: 2.8em; font-weight: 700; line-height: 1.05; }
@@ -129,6 +163,8 @@
     transition: background 0.2s ease, color 0.2s ease;
   }
   .seg-btn.active { background: var(--surface-card); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .seg-main { padding: 5px; }
+  .seg-main .seg-btn { font-size: 0.92em; padding: 12px 6px; display: flex; align-items: center; justify-content: center; gap: 6px; }
   label { display: block; font-size: 0.83em; color: var(--text-secondary); margin-top: 14px; margin-bottom: 4px; font-weight: 600; }
   input {
     width: 100%; padding: 10px 12px; font-size: 1em; border-radius: 10px;
@@ -142,6 +178,62 @@
   }
   button.save-btn:active { opacity: 0.85; }
   .msg { text-align: center; margin-top: 10px; font-size: 0.9em; color: var(--text-secondary); min-height: 1.2em; }
+
+  /* --- SR223: schema, grile, pastile --- */
+  .schematic-card svg { width: 100%; height: auto; display: block; }
+  .legend-row { display: flex; gap: 16px; margin-top: 8px; font-size: 0.74em; color: var(--text-secondary); }
+  .legend-swatch { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+  .temp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .temp-tile { background: var(--surface-inset); border-radius: 10px; padding: 8px 6px; text-align: center; }
+  .tt-label { font-size: 0.64em; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .tt-value { font-size: 1.08em; font-weight: 700; margin-top: 2px; }
+  .pump-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 16px; margin-top: 10px; }
+  .pump-item .meter-row { margin-bottom: 4px; font-size: 0.8em; }
+  .pill-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
+  .pill { display: flex; align-items: center; justify-content: space-between; background: var(--surface-inset); border-radius: 10px; padding: 9px 10px; font-size: 0.8em; font-weight: 600; }
+  .pill-state { padding: 3px 9px; border-radius: 999px; font-size: 0.76em; font-weight: 700; }
+  .pill-on { background: rgba(12,163,12,0.15); color: var(--status-good); }
+  .pill-off { background: var(--surface-page); color: var(--text-muted); }
+  .energy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+  .energy-tile { text-align: center; background: var(--surface-inset); border-radius: 10px; padding: 10px 4px; }
+  .energy-tile .tt-value { font-size: 1em; }
+  .status-banner { display: flex; align-items: center; gap: 8px; border-radius: 12px; padding: 10px 12px; font-size: 0.85em; font-weight: 600; margin-bottom: 14px; }
+  .status-banner.good { background: rgba(12,163,12,0.12); color: var(--status-good); border: 1px solid rgba(12,163,12,0.35); }
+  .status-banner.critical { background: rgba(208,59,59,0.12); color: var(--status-critical); border: 1px solid rgba(208,59,59,0.4); }
+  .sys-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+  .sys-item { display: flex; align-items: center; gap: 7px; font-size: 0.85em; color: var(--text-secondary); }
+  .sys-item b { color: var(--text-primary); font-weight: 700; margin-left: auto; }
+  .hist-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .hist-chip {
+    display: flex; align-items: center; gap: 5px; border: 1px solid var(--border);
+    background: var(--surface-inset); border-radius: 999px; padding: 5px 10px 5px 8px;
+    font-size: 0.72em; font-weight: 700; cursor: pointer; user-select: none;
+    transition: opacity 0.2s ease;
+  }
+  .hist-chip .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .hist-chip.off { opacity: 0.4; }
+  .hist-chip.off .dot { background: var(--text-muted) !important; }
+  .hist-chip.empty { opacity: 0.3; cursor: not-allowed; }
+  .hist-chart-wrap { position: relative; }
+  .hist-chart-wrap svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .hist-gridline { stroke: var(--border); stroke-width: 1; }
+  .hist-axis-label { fill: var(--text-muted); font-size: 8.5px; font-weight: 600; }
+  .hist-crosshair { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0; pointer-events: none; }
+  .hist-tooltip {
+    position: absolute; pointer-events: none; background: var(--text-primary); color: var(--surface-card);
+    font-size: 0.72em; padding: 6px 9px; border-radius: 8px; opacity: 0; transition: opacity 0.15s ease;
+    white-space: nowrap; z-index: 5; line-height: 1.5; font-weight: 600;
+  }
+  .hist-empty-msg { text-align: center; font-size: 0.82em; color: var(--text-muted); padding: 20px 0; }
+  .pipe { transition: opacity 0.4s ease; }
+  .pipe.idle { opacity: 0.3; }
+  .pipe.flowing { stroke-dasharray: 9 6; animation: flowDash 0.8s linear infinite; }
+  @keyframes flowDash { to { stroke-dashoffset: -15; } }
+  .pipe-branch.inactive-path { stroke: var(--text-muted) !important; opacity: 0.3; stroke-dasharray: 3 4; animation: none; }
+  #pumpIcon circle { transition: stroke 0.4s ease; }
+  #pumpIcon polygon { transition: fill 0.4s ease; }
+  #pumpIcon.idle circle { stroke: var(--text-muted); }
+  #pumpIcon.idle polygon { fill: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -149,6 +241,15 @@
   <h1>&#127774; Pompa Solara</h1>
   <button class="theme-btn" id="themeBtn" onclick="cycleTheme()">AUTO</button>
 </div>
+
+<div class="seg seg-main" id="mainNav" role="tablist">
+  <button class="seg-btn active" data-section="pompa" onclick="showSection('pompa')">Pompa ESP32</button>
+  <button class="seg-btn" data-section="sr223" onclick="showSection('sr223')">SR223</button>
+  <button class="seg-btn" data-section="istoric" onclick="showSection('istoric')">Istoric</button>
+</div>
+
+<!-- ================= SECTIUNE POMPA ESP32 ================= -->
+<div id="section-pompa">
 <div id="connBadge" class="badge badge-critical hidden">Conectare la broker...</div>
 <div id="deviceBadge" class="badge badge-critical hidden">Dispozitiv deconectat - fara date noi</div>
 <div id="testBadge" class="badge badge-warning hidden">Mod test activ (override manual)</div>
@@ -212,6 +313,200 @@
     <div class="msg" id="msgProtection"></div>
   </div>
 </div>
+</div>
+
+<!-- ================= SECTIUNE SR223 ================= -->
+<div id="section-sr223" class="hidden">
+<div id="sr223Badge" class="badge badge-warning">Se incarca datele SR223...</div>
+
+<div id="faultBanner" class="status-banner good">
+  <svg class="icon icon-good"><path d="M20 6 9 17l-5-5"/></svg>
+  <svg class="icon icon-bad hidden"><path d="M12 9v3.5M12 16.5h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+  <span id="faultText">Fara alarme</span>
+</div>
+
+<div class="card schematic-card">
+  <div class="card-title">Schema instalatiei</div>
+  <svg viewBox="0 0 330 350" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="collectorGrad" gradientUnits="userSpaceOnUse" x1="30" y1="180" x2="75" y2="95">
+        <stop offset="0" stop-color="var(--cat-blue)"/>
+        <stop offset="1" stop-color="var(--cat-red)"/>
+      </linearGradient>
+      <linearGradient id="tankGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="var(--cat-red)" stop-opacity="0.55"/>
+        <stop offset="1" stop-color="var(--cat-blue)" stop-opacity="0.55"/>
+      </linearGradient>
+    </defs>
+
+    <!-- tevi (subtiri, ca sa nu acopere simbolul vanei): trunchi cald T1 -> vana -->
+    <path id="pipeHotTrunk" class="pipe pipe-hot" d="M75,95 L75,150 L140,150" fill="none" stroke="var(--cat-red)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- ramura cald -> rezervor 1 (T3) -->
+    <path id="pipeToTank1" class="pipe pipe-hot pipe-branch" d="M150,160 L150,190" fill="none" stroke="var(--cat-red)" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- ramura cald -> rezervor 2 / buffer (T4) -->
+    <path id="pipeToTank2" class="pipe pipe-hot pipe-branch" d="M160,150 L223,150 L223,190" fill="none" stroke="var(--cat-red)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- retur rece: rezervoare -> pompa -> colector -->
+    <path id="pipeCold" class="pipe pipe-cold" d="M150,300 L150,330 L223,330 L223,300 M45,330 L150,330 M45,330 L45,180 L30,180" fill="none" stroke="var(--cat-blue)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- colector solar -->
+    <line x1="30" y1="180" x2="75" y2="95" stroke="url(#collectorGrad)" stroke-width="15" stroke-linecap="round"/>
+    <circle cx="14" cy="80" r="6" fill="var(--cat-yellow)"/>
+    <g stroke="var(--cat-yellow)" stroke-width="2" stroke-linecap="round">
+      <line x1="14" y1="67" x2="14" y2="62"/>
+      <line x1="24" y1="73" x2="28" y2="69"/>
+      <line x1="4" y1="73" x2="0" y2="69"/>
+    </g>
+
+    <!-- T1 - colector -->
+    <line x1="75" y1="95" x2="75" y2="72" stroke="var(--border)" stroke-width="1.5"/>
+    <circle id="t1Dot" cx="75" cy="95" r="4" fill="var(--cat-red)"/>
+    <text x="75" y="66" text-anchor="middle" font-size="9" fill="var(--text-muted)" font-weight="700">T1</text>
+    <text id="t1Value" x="75" y="52" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text-primary)">--&deg;</text>
+
+    <!-- vana cu 3 cai, alimentata de releul R4 - desenata DUPA tevi ca sa fie vizibila deasupra lor -->
+    <circle cx="150" cy="150" r="10" fill="var(--cat-orange)" stroke="var(--surface-card)" stroke-width="2.5"/>
+    <text x="165" y="146" font-size="8.5" fill="var(--text-secondary)" font-weight="700">Vana 3 cai</text>
+    <text x="165" y="156" font-size="7.5" fill="var(--text-muted)">releu R4</text>
+
+    <!-- pompa R1 -->
+    <g id="pumpIcon">
+      <circle cx="45" cy="255" r="11" fill="var(--surface-card)" stroke="var(--cat-blue)" stroke-width="2.5"/>
+      <polygon points="41,250 41,260 50,255" fill="var(--cat-blue)"/>
+    </g>
+    <text x="61" y="252" font-size="9" fill="var(--text-secondary)" font-weight="700">R1</text>
+    <text id="r1Value" x="61" y="263" font-size="10" fill="var(--text-primary)" font-weight="700">--%</text>
+
+    <!-- rezervoare -->
+    <rect x="117" y="190" width="66" height="110" rx="13" fill="url(#tankGrad)" stroke="var(--border)" stroke-width="1.5"/>
+    <path d="M134,215 L144,225 L134,235 L144,245 L134,255 L144,265" fill="none" stroke="var(--cat-blue)" stroke-width="2" opacity="0.6"/>
+    <rect x="190" y="190" width="66" height="110" rx="13" fill="url(#tankGrad)" stroke="var(--border)" stroke-width="1.5"/>
+    <path d="M207,215 L217,225 L207,235 L217,245 L207,255 L217,265" fill="none" stroke="var(--cat-blue)" stroke-width="2" opacity="0.6"/>
+
+    <!-- T3 - boiler sus -->
+    <line x1="178" y1="193" x2="196" y2="178" stroke="var(--border)" stroke-width="1.5"/>
+    <circle id="t3Dot" cx="178" cy="193" r="4" fill="var(--cat-red)"/>
+    <text x="200" y="176" text-anchor="start" font-size="9" fill="var(--text-muted)" font-weight="700">T3</text>
+    <text id="t3Value" x="200" y="190" text-anchor="start" font-size="13" font-weight="700" fill="var(--text-primary)">--&deg;</text>
+
+    <!-- T2 - boiler jos -->
+    <line x1="117" y1="275" x2="96" y2="275" stroke="var(--border)" stroke-width="1.5"/>
+    <circle id="t2Dot" cx="117" cy="275" r="4" fill="var(--cat-red)"/>
+    <text x="93" y="271" text-anchor="end" font-size="9" fill="var(--text-muted)" font-weight="700">T2</text>
+    <text id="t2Value" x="93" y="285" text-anchor="end" font-size="13" font-weight="700" fill="var(--text-primary)">--&deg;</text>
+
+    <!-- T4 - buffer -->
+    <line x1="256" y1="250" x2="277" y2="250" stroke="var(--border)" stroke-width="1.5"/>
+    <circle id="t4Dot" cx="256" cy="250" r="4" fill="var(--cat-red)"/>
+    <text x="281" y="246" text-anchor="start" font-size="9" fill="var(--text-muted)" font-weight="700">T4</text>
+    <text id="t4Value" x="281" y="260" text-anchor="start" font-size="13" font-weight="700" fill="var(--text-primary)">--&deg;</text>
+  </svg>
+  <div class="legend-row">
+    <span><span class="legend-swatch" style="background:var(--cat-red)"></span>Tur (cald)</span>
+    <span><span class="legend-swatch" style="background:var(--cat-blue)"></span>Retur (rece)</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <svg class="icon"><path d="M14 4v10.5a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+    Toate temperaturile
+  </div>
+  <div class="card-desc">Canalele fara senzor montat inca arata valori fara semnificatie (ex. T3) - dispar automat cand montezi senzorul.</div>
+  <div class="temp-grid">
+    <div class="temp-tile"><div class="tt-label">T0</div><div class="tt-value" id="gridT0">--</div></div>
+    <div class="temp-tile"><div class="tt-label">T1 Colector</div><div class="tt-value" id="gridT1">--</div></div>
+    <div class="temp-tile"><div class="tt-label">T2 Boiler jos</div><div class="tt-value" id="gridT2">--</div></div>
+    <div class="temp-tile"><div class="tt-label">T3 Boiler sus</div><div class="tt-value" id="gridT3">--</div></div>
+    <div class="temp-tile"><div class="tt-label">T4 Buffer</div><div class="tt-value" id="gridT4">--</div></div>
+    <div class="temp-tile"><div class="tt-label">T5</div><div class="tt-value" id="gridT5">--</div></div>
+    <div class="temp-tile"><div class="tt-label">T6</div><div class="tt-value" id="gridT6">--</div></div>
+    <div class="temp-tile"><div class="tt-label">TVFS</div><div class="tt-value" id="gridTVFS">--</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Temperatura tinta boiler</div>
+  <div class="card-desc">Singurul parametru care poate fi schimbat de la distanta.</div>
+  <label>Temperatura tinta (&deg;C)</label>
+  <input type="number" step="1" min="0" max="100" id="sr223TempSet">
+  <button class="save-btn" onclick="saveSr223TempSet()">Salveaza</button>
+  <div class="msg" id="sr223Msg"></div>
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <svg class="icon"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+    Pompe / relee
+  </div>
+  <div class="pump-grid">
+    <div class="pump-item">
+      <div class="meter-row"><span>R1 - solara</span><span id="pumpR1Label">--%</span></div>
+      <div class="meter-track"><div class="meter-fill" id="pumpR1Fill" style="background:var(--cat-blue)"></div></div>
+    </div>
+    <div class="pump-item">
+      <div class="meter-row"><span>R2</span><span id="pumpR2Label">--%</span></div>
+      <div class="meter-track"><div class="meter-fill" id="pumpR2Fill" style="background:var(--cat-violet)"></div></div>
+    </div>
+    <div class="pump-item">
+      <div class="meter-row"><span>R3</span><span id="pumpR3Label">--%</span></div>
+      <div class="meter-track"><div class="meter-fill" id="pumpR3Fill" style="background:var(--cat-aqua)"></div></div>
+    </div>
+    <div class="pump-item">
+      <div class="meter-row"><span>R4</span><span id="pumpR4Label">--%</span></div>
+      <div class="meter-track"><div class="meter-fill" id="pumpR4Fill" style="background:var(--cat-orange)"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Incalzire</div>
+  <div class="pill-row">
+    <div class="pill">Electrica <span class="pill-state pill-off" id="pillEle">Oprit</span></div>
+    <div class="pill">Rapida <span class="pill-state pill-off" id="pillInstant">Oprit</span></div>
+    <div class="pill">HR <span class="pill-state pill-off" id="pillHR">Oprit</span></div>
+    <div class="pill">HK <span class="pill-state pill-off" id="pillHK">Oprit</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">
+    <svg class="icon"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+    Energie
+  </div>
+  <div class="energy-grid">
+    <div class="energy-tile"><div class="tt-label">Azi</div><div class="tt-value" id="energyToday">--</div></div>
+    <div class="energy-tile"><div class="tt-label">Total</div><div class="tt-value" id="energyTotal">--</div></div>
+    <div class="energy-tile"><div class="tt-label">CO2 economisit</div><div class="tt-value" id="energyCo2">--</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Sistem</div>
+  <div class="sys-grid">
+    <div class="sys-item">Mod <b id="sysMode">--</b></div>
+    <div class="sys-item">Debit <b id="sysFlow">--</b></div>
+    <div class="sys-item">
+      <svg class="icon"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+      Semnal <b id="sysSignal">--</b>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ================= SECTIUNE ISTORIC ================= -->
+<div id="section-istoric" class="hidden">
+<div id="histBadge" class="badge badge-warning">Se incarca istoricul...</div>
+<div class="card">
+  <div class="card-title">Istoric temperaturi (ultimele 24h)</div>
+  <div class="card-desc">T1retur (ESP32) apare gol pana se conecteaza placa la raportarea catre server.</div>
+  <div class="hist-legend" id="histLegend"></div>
+  <div class="hist-chart-wrap">
+    <svg id="histChart" viewBox="0 0 380 220"></svg>
+    <div class="hist-tooltip" id="histTooltip"></div>
+  </div>
+  <div class="hist-empty-msg hidden" id="histEmptyMsg">Inca nu exista date inregistrate.</div>
+</div>
+</div>
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
@@ -267,7 +562,7 @@ function updateState(temp, tMinV, tMaxV) {
   document.getElementById('rangeMaxLabel').textContent = Math.round(tMaxV) + '°';
 }
 function showTab(name) {
-  document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.seg:not(.seg-main) .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.getElementById('tab-curve').classList.toggle('hidden', name !== 'curve');
   document.getElementById('tab-protect').classList.toggle('hidden', name !== 'protect');
 }
@@ -376,6 +671,295 @@ document.querySelectorAll('input').forEach(el => {
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
+}
+
+// ================= SR223 (Tuya Cloud, prin proxy Cloudflare Worker) =================
+// ATENTIE: acelasi compromis de securitate ca la MQTT mai sus - PROXY_TOKEN e vizibil in
+// View Source. E doar cheia catre acest worker (nu secretul Tuya, care ramane server-side
+// in Cloudflare); worker-ul scrie DOAR temp_set, nimic altceva.
+const SR223_WORKER = 'https://sr223-proxy.dan-tt.workers.dev';
+const SR223_TOKEN = 'hi1LvXcj3Js2xQ3NWHPV0BHpj4nsVbC3';
+const SR223_POLL_MS = 20000;
+let sr223Editing = false;
+let sr223PollTimer = null;
+
+function tempColor(v) {
+  if (typeof v !== 'number') return cssVar('--text-muted');
+  const t = Math.max(0, Math.min(1, v / 100));
+  const cold = hexToRgb(cssVar('--cat-blue'));
+  const hot = hexToRgb(cssVar('--cat-red'));
+  const rgb = cold.map((c, i) => Math.round(c + (hot[i] - c) * t));
+  return 'rgb(' + rgb.join(',') + ')';
+}
+function fmtTemp(v) {
+  return typeof v === 'number' ? v.toFixed(1) + '°' : '—';
+}
+function setSchematicTemp(valueId, dotId, v) {
+  const el = document.getElementById(valueId);
+  const color = tempColor(v);
+  if (el) { el.textContent = fmtTemp(v); el.style.fill = color; }
+  const dot = document.getElementById(dotId);
+  if (dot) dot.style.fill = color;
+}
+
+async function fetchSr223Status() {
+  const badge = document.getElementById('sr223Badge');
+  try {
+    const res = await fetch(SR223_WORKER + '/status', { headers: { 'X-Proxy-Token': SR223_TOKEN } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    badge.classList.add('hidden');
+    renderSr223(d);
+  } catch (e) {
+    badge.textContent = 'SR223 indisponibil - reincercare...';
+    badge.classList.remove('hidden');
+  }
+}
+
+function renderSr223(d) {
+  setSchematicTemp('t1Value', 't1Dot', d.temps.T1_colector);
+  setSchematicTemp('t2Value', 't2Dot', d.temps.T2_boilerJos);
+  setSchematicTemp('t3Value', 't3Dot', d.temps.T3_boilerSus);
+  setSchematicTemp('t4Value', 't4Dot', d.temps.T4_buffer);
+
+  const r1 = typeof d.pumpSpeeds.R1 === 'number' ? d.pumpSpeeds.R1 : 0;
+  document.getElementById('r1Value').textContent = r1 + '%';
+  const running = r1 > 0;
+  ['pipeHotTrunk', 'pipeToTank1', 'pipeToTank2', 'pipeCold'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('flowing', running);
+    el.classList.toggle('idle', !running);
+  });
+  document.getElementById('pumpIcon').classList.toggle('idle', !running);
+
+  // R4 e releul care alimenteaza vana cu 3 cai: cand e activat, inchide returul boilerului
+  // si deschide returul bufferului (si, printr-un contact auxiliar, alimenteaza cu tensiune
+  // de forta pompa secundara de pe circuitul bufferului, cea comandata PWM de ESP32).
+  // Presupunere: DP-ul Tuya "r4" > 0 = releu activat = rutat spre buffer; r4 = 0 = boiler.
+  // NEVERIFICAT EMPIRIC daca valoarea numerica chiar reflecta starea releului - de confirmat
+  // cand sistemul comuta vizibil intre incarcarea celor doua rezervoare.
+  const toTank2 = (typeof d.pumpSpeeds.R4 === 'number' ? d.pumpSpeeds.R4 : 0) > 0;
+  const pipeToTank1 = document.getElementById('pipeToTank1');
+  const pipeToTank2 = document.getElementById('pipeToTank2');
+  if (pipeToTank1) pipeToTank1.classList.toggle('inactive-path', toTank2);
+  if (pipeToTank2) pipeToTank2.classList.toggle('inactive-path', !toTank2);
+
+  const tempCells = {
+    gridT0: d.temps.T0, gridT1: d.temps.T1_colector, gridT2: d.temps.T2_boilerJos,
+    gridT3: d.temps.T3_boilerSus, gridT4: d.temps.T4_buffer, gridT5: d.temps.T5,
+    gridT6: d.temps.T6, gridTVFS: d.temps.TVFS
+  };
+  for (const id in tempCells) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.textContent = fmtTemp(tempCells[id]);
+    el.style.color = tempColor(tempCells[id]);
+  }
+
+  ['R1', 'R2', 'R3', 'R4'].forEach((k) => {
+    const v = typeof d.pumpSpeeds[k] === 'number' ? d.pumpSpeeds[k] : 0;
+    const fill = document.getElementById('pump' + k + 'Fill');
+    const label = document.getElementById('pump' + k + 'Label');
+    if (fill) fill.style.width = v + '%';
+    if (label) label.textContent = v + '%';
+  });
+
+  const heatMap = { electricHeatingOn: 'pillEle', instantHeatingOn: 'pillInstant', HR: 'pillHR', HK: 'pillHK' };
+  for (const key in heatMap) {
+    const el = document.getElementById(heatMap[key]);
+    if (!el) continue;
+    const on = !!d.heating[key];
+    el.textContent = on ? 'Pornit' : 'Oprit';
+    el.className = 'pill-state ' + (on ? 'pill-on' : 'pill-off');
+  }
+
+  document.getElementById('energyToday').textContent = (typeof d.energy.todayKwh === 'number' ? d.energy.todayKwh.toFixed(1) : '0.0') + ' kWh';
+  document.getElementById('energyTotal').textContent = (typeof d.energy.totalKwh === 'number' ? d.energy.totalKwh.toFixed(1) : '0.0') + ' kWh';
+  document.getElementById('energyCo2').textContent = (typeof d.energy.co2SavedKg === 'number' ? d.energy.co2SavedKg.toFixed(1) : '0.0') + ' kg';
+
+  document.getElementById('sysMode').textContent = d.mode || '--';
+  document.getElementById('sysFlow').textContent = (typeof d.waterFlow === 'number' ? d.waterFlow.toFixed(1) : '0.0') + ' L/min';
+  document.getElementById('sysSignal').textContent = (typeof d.signalStrength === 'number' ? d.signalStrength : '--') + ' dB';
+
+  const faultBanner = document.getElementById('faultBanner');
+  const iconGood = faultBanner.querySelector('.icon-good');
+  const iconBad = faultBanner.querySelector('.icon-bad');
+  const faultText = document.getElementById('faultText');
+  if (d.faults && d.faults.length) {
+    faultBanner.className = 'status-banner critical';
+    iconGood.classList.add('hidden');
+    iconBad.classList.remove('hidden');
+    faultText.textContent = 'Alarme active: ' + d.faults.join(', ');
+  } else {
+    faultBanner.className = 'status-banner good';
+    iconGood.classList.remove('hidden');
+    iconBad.classList.add('hidden');
+    faultText.textContent = 'Fara alarme';
+  }
+
+  if (!sr223Editing && typeof d.tempSet === 'number') {
+    document.getElementById('sr223TempSet').value = d.tempSet;
+  }
+}
+
+async function saveSr223TempSet() {
+  const val = parseFloat(document.getElementById('sr223TempSet').value);
+  const msg = document.getElementById('sr223Msg');
+  msg.textContent = 'Se trimite...';
+  try {
+    const res = await fetch(SR223_WORKER + '/settemp', {
+      method: 'POST',
+      headers: { 'X-Proxy-Token': SR223_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: val })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    msg.textContent = 'Salvat!';
+  } catch (e) {
+    msg.textContent = 'Eroare la salvare.';
+  }
+  setTimeout(() => msg.textContent = '', 2500);
+}
+
+const sr223TempInput = document.getElementById('sr223TempSet');
+sr223TempInput.addEventListener('focus', () => sr223Editing = true);
+sr223TempInput.addEventListener('blur', () => sr223Editing = false);
+
+// ================= Istoric (grafic comparativ temperaturi) =================
+const HIST_SERIES = [
+  { key: 't1',  label: 'T1 Colector',   color: '--hist-t1'  },
+  { key: 't1r', label: 'T1retur ESP32', color: '--hist-t1r' },
+  { key: 't2',  label: 'T2 Boiler jos', color: '--hist-t2'  },
+  { key: 't3',  label: 'T3 Boiler sus', color: '--hist-t3'  },
+  { key: 't4',  label: 'T4 Buffer',     color: '--hist-t4'  },
+];
+const HIST_POLL_MS = 60000;
+let histPollTimer = null;
+let histVisible = { t1: true, t1r: true, t2: true, t3: true, t4: true };
+let histData = null;
+
+async function fetchHistory() {
+  const badge = document.getElementById('histBadge');
+  try {
+    const res = await fetch(SR223_WORKER + '/history?hours=24', { headers: { 'X-Proxy-Token': SR223_TOKEN } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    histData = await res.json();
+    badge.classList.add('hidden');
+    renderHistChart();
+  } catch (e) {
+    badge.textContent = 'Istoric indisponibil - reincercare...';
+    badge.classList.remove('hidden');
+  }
+}
+
+function renderHistLegend() {
+  const legend = document.getElementById('histLegend');
+  legend.innerHTML = '';
+  HIST_SERIES.forEach((s) => {
+    const points = (histData && histData[s.key]) || [];
+    const chip = document.createElement('div');
+    chip.className = 'hist-chip' + (histVisible[s.key] ? '' : ' off') + (points.length === 0 ? ' empty' : '');
+    chip.innerHTML = `<span class="dot" style="background:${cssVar(s.color)}"></span>${s.label}`;
+    if (points.length > 0) {
+      chip.onclick = () => { histVisible[s.key] = !histVisible[s.key]; renderHistChart(); };
+    }
+    legend.appendChild(chip);
+  });
+}
+
+function renderHistChart() {
+  renderHistLegend();
+  const svg = document.getElementById('histChart');
+  const emptyMsg = document.getElementById('histEmptyMsg');
+  if (!histData) return;
+
+  const activeSeries = HIST_SERIES.filter((s) => histVisible[s.key] && (histData[s.key] || []).length > 0);
+  if (activeSeries.length === 0) {
+    svg.innerHTML = '';
+    emptyMsg.classList.remove('hidden');
+    return;
+  }
+  emptyMsg.classList.add('hidden');
+
+  const W = 380, H = 220, PAD_L = 32, PAD_R = 8, PAD_T = 10, PAD_B = 20;
+  const now = Date.now();
+  const from = now - 24 * 3600 * 1000;
+
+  const allVals = activeSeries.flatMap((s) => histData[s.key].map((p) => p[1]));
+  const minV = Math.floor(Math.min(...allVals) / 5) * 5 - 2;
+  const maxV = Math.ceil(Math.max(...allVals) / 5) * 5 + 2;
+  const x = (t) => PAD_L + ((t - from) / (now - from)) * (W - PAD_L - PAD_R);
+  const y = (v) => PAD_T + (1 - (v - minV) / ((maxV - minV) || 1)) * (H - PAD_T - PAD_B);
+
+  let html = '';
+  const steps = 4;
+  for (let i = 0; i <= steps; i++) {
+    const v = minV + (i / steps) * (maxV - minV);
+    const yy = y(v);
+    html += `<line class="hist-gridline" x1="${PAD_L}" y1="${yy}" x2="${W - PAD_R}" y2="${yy}"/>`;
+    html += `<text class="hist-axis-label" x="${PAD_L - 5}" y="${yy + 3}" text-anchor="end">${Math.round(v)}&deg;</text>`;
+  }
+  for (let h = 0; h <= 24; h += 6) {
+    const t = from + h * 3600 * 1000;
+    html += `<text class="hist-axis-label" x="${x(t)}" y="${H - 5}" text-anchor="middle">-${24 - h}h</text>`;
+  }
+
+  activeSeries.forEach((s) => {
+    const pts = histData[s.key].filter((p) => p[0] >= from).map((p) => `${x(p[0])},${y(p[1])}`).join(' ');
+    if (!pts) return;
+    const color = cssVar(s.color);
+    html += `<polyline fill="none" stroke="${color}" stroke-width="2" points="${pts}"/>`;
+    const last = histData[s.key][histData[s.key].length - 1];
+    html += `<circle cx="${x(last[0])}" cy="${y(last[1])}" r="3.2" fill="${color}"/>`;
+  });
+  html += `<line class="hist-crosshair" id="histCrosshair" x1="0" y1="${PAD_T}" x2="0" y2="${H - PAD_B}"/>`;
+
+  svg.innerHTML = html;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const tooltip = document.getElementById('histTooltip');
+  svg.onmousemove = (e) => {
+    const rect = svg.getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / rect.width) * W;
+    const t = from + ((px - PAD_L) / (W - PAD_L - PAD_R)) * (now - from);
+    const crosshair = document.getElementById('histCrosshair');
+    crosshair.setAttribute('x1', px);
+    crosshair.setAttribute('x2', px);
+    crosshair.style.opacity = 1;
+
+    let rows = '';
+    activeSeries.forEach((s) => {
+      const pts = histData[s.key];
+      let closest = pts[0];
+      for (const p of pts) { if (Math.abs(p[0] - t) < Math.abs(closest[0] - t)) closest = p; }
+      const color = cssVar(s.color);
+      rows += `<div style="display:flex;gap:6px;align-items:center"><span style="width:7px;height:7px;border-radius:50%;background:${color};display:inline-block"></span>${s.label}: ${closest[1].toFixed(1)}&deg;</div>`;
+    });
+    const hourLabel = new Date(t).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+    tooltip.innerHTML = `<div style="margin-bottom:3px;opacity:0.7">${hourLabel}</div>${rows}`;
+    tooltip.style.opacity = 1;
+    tooltip.style.left = Math.min(px + 10, W - 150) + 'px';
+    tooltip.style.top = '4px';
+  };
+  svg.onmouseleave = () => {
+    document.getElementById('histCrosshair').style.opacity = 0;
+    tooltip.style.opacity = 0;
+  };
+}
+
+function showSection(name) {
+  document.querySelectorAll('#mainNav .seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.section === name));
+  document.getElementById('section-pompa').classList.toggle('hidden', name !== 'pompa');
+  document.getElementById('section-sr223').classList.toggle('hidden', name !== 'sr223');
+  document.getElementById('section-istoric').classList.toggle('hidden', name !== 'istoric');
+  if (name === 'sr223' && !sr223PollTimer) {
+    fetchSr223Status();
+    sr223PollTimer = setInterval(fetchSr223Status, SR223_POLL_MS);
+  }
+  if (name === 'istoric' && !histPollTimer) {
+    fetchHistory();
+    histPollTimer = setInterval(fetchHistory, HIST_POLL_MS);
+  }
 }
 </script>
 </body>
