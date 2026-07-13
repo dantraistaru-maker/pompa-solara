@@ -521,8 +521,9 @@
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <script>
 // ATENTIE: credentialele de mai jos sunt vizibile oricui deschide aceasta pagina publica
-// (View Source). Credentiala e restransa la topicul "pompasolara/#" (vezi HiveMQ Access
-// Management), separata de cea folosita de ESP32 - izoleaza expunerea publica de firmware.
+// (View Source) - de-aia pompasolara-web are voie DOAR Subscribe in HiveMQ Access Management
+// (verificat/configurat 2026-07-13). Scrierea (Publish) foloseste alt cont, pompasolara-control,
+// ale carui credentiale NU sunt niciodata scrise aici - vezi promptControlCredentials() mai jos.
 const MQTT_URL = 'wss://59c9a354563a4abbb57553994a6dbbd5.s1.eu.hivemq.cloud:8884/mqtt';
 const MQTT_USER = 'pompasolara-web';
 const MQTT_PASS = '12345678';
@@ -653,11 +654,52 @@ client.on('message', (topic, payload) => {
   }
 });
 
+// Credentiale de control - introduse manual de utilizator, pastrate doar in memorie (nu
+// localStorage, nu cod) cat timp pagina ramane deschisa. Cerute o singura data per sesiune,
+// nu la fiecare Salvare.
+let controlUser = null;
+let controlPass = null;
+
+function promptControlCredentials() {
+  if (controlUser && controlPass) return true;
+  const u = prompt('Utilizator MQTT control (scriere):');
+  if (!u) return false;
+  const p = prompt('Parola MQTT control:');
+  if (!p) return false;
+  controlUser = u;
+  controlPass = p;
+  return true;
+}
+
 function publishSettings(body, msgId) {
-  client.publish(SETTINGS_TOPIC, JSON.stringify(body));
   const msg = document.getElementById(msgId);
-  msg.textContent = 'Trimis!';
-  setTimeout(() => msg.textContent = '', 2000);
+  if (!promptControlCredentials()) {
+    msg.textContent = 'Anulat - credentiale de control necesare.';
+    setTimeout(() => msg.textContent = '', 2500);
+    return;
+  }
+  msg.textContent = 'Se trimite...';
+  const ctrlClient = mqtt.connect(MQTT_URL, {
+    username: controlUser,
+    password: controlPass,
+    clientId: 'web-ctrl-' + Math.random().toString(16).slice(2),
+    reconnectPeriod: 0,
+    connectTimeout: 8000,
+  });
+  ctrlClient.on('connect', () => {
+    ctrlClient.publish(SETTINGS_TOPIC, JSON.stringify(body), {}, () => {
+      ctrlClient.end();
+      msg.textContent = 'Trimis!';
+      setTimeout(() => msg.textContent = '', 2000);
+    });
+  });
+  ctrlClient.on('error', () => {
+    ctrlClient.end(true);
+    controlUser = null;
+    controlPass = null; // credentiale gresite - cere din nou data viitoare
+    msg.textContent = 'Eroare - credentiale de control gresite?';
+    setTimeout(() => msg.textContent = '', 3000);
+  });
 }
 function saveSettings() {
   publishSettings({
