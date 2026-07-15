@@ -315,6 +315,20 @@
     <div style="margin-top:8px;font-size:0.72em;opacity:0.6;cursor:pointer;text-decoration:underline" onclick="forgetControlCreds()">Uita datele de control salvate pe acest dispozitiv</div>
   </div>
 </div>
+
+<div class="card">
+  <div class="card-title">Actualizare firmware (OTA de la distanta)</div>
+  <div class="card-desc">Placa descarca si se flasheaza singura cu fisierul .bin de la URL-ul dat, prin internet - nu necesita aceeasi retea WiFi.</div>
+  <div class="mini-stats" style="margin-top:0">
+    <div class="mini-stat"><span class="mini-label">Versiune curenta</span><span class="mini-value" id="otaVersion">--</span></div>
+  </div>
+  <div id="otaErrorBadge" class="badge badge-critical hidden" style="margin-top:14px"></div>
+  <label>URL firmware (.bin)</label>
+  <input type="text" id="otaUrl" placeholder="https://raw.githubusercontent.com/.../PompaSolara.bin">
+  <button class="save-btn" onclick="sendOtaUpdate()">Trimite actualizare</button>
+  <div class="msg" id="msgOta"></div>
+  <div style="margin-top:8px;font-size:0.72em;opacity:0.6;cursor:pointer;text-decoration:underline" onclick="forgetControlCreds()">Uita datele de control salvate pe acest dispozitiv</div>
+</div>
 </div>
 
 <!-- ================= SECTIUNE SR223 ================= -->
@@ -531,6 +545,7 @@ const MQTT_USER = 'pompasolara-web';
 const MQTT_PASS = '12345678';
 const STATUS_TOPIC = 'pompasolara/status';
 const SETTINGS_TOPIC = 'pompasolara/settings/set';
+const OTA_TOPIC = 'pompasolara/ota/set';
 const THEME_KEY = 'pompaTheme';
 
 let editing = false;
@@ -654,6 +669,15 @@ client.on('message', (topic, payload) => {
     document.getElementById('hysteresis').value = d.hysteresis;
     document.getElementById('tempFilterAlpha').value = d.tempFilterAlpha;
   }
+
+  document.getElementById('otaVersion').textContent = d.firmwareVersion || '--';
+  const otaErrorBadge = document.getElementById('otaErrorBadge');
+  if (d.otaError) {
+    otaErrorBadge.textContent = 'Eroare la ultima actualizare: ' + d.otaError;
+    otaErrorBadge.classList.remove('hidden');
+  } else {
+    otaErrorBadge.classList.add('hidden');
+  }
 });
 
 // Credentiale de control - introduse manual de utilizator. Optional pastrate in localStorage
@@ -691,7 +715,7 @@ function promptControlCredentials() {
   return true;
 }
 
-function publishSettings(body, msgId) {
+function publishControl(topic, body, msgId) {
   const msg = document.getElementById(msgId);
   if (!promptControlCredentials()) {
     msg.textContent = 'Anulat - credentiale de control necesare.';
@@ -707,7 +731,7 @@ function publishSettings(body, msgId) {
     connectTimeout: 8000,
   });
   ctrlClient.on('connect', () => {
-    ctrlClient.publish(SETTINGS_TOPIC, JSON.stringify(body), {}, () => {
+    ctrlClient.publish(topic, JSON.stringify(body), {}, () => {
       ctrlClient.end();
       localStorage.setItem(CONTROL_CREDS_KEY, JSON.stringify({ user: controlUser, pass: controlPass }));
       msg.textContent = 'Trimis!';
@@ -722,18 +746,31 @@ function publishSettings(body, msgId) {
   });
 }
 function saveSettings() {
-  publishSettings({
+  publishControl(SETTINGS_TOPIC, {
     tMin: parseFloat(document.getElementById('tMin').value),
     tMax: parseFloat(document.getElementById('tMax').value),
     pwmMin: parseFloat(document.getElementById('pwmMin').value)
   }, 'msg');
 }
 function saveProtection() {
-  publishSettings({
+  publishControl(SETTINGS_TOPIC, {
     pwmStep: parseFloat(document.getElementById('pwmStep').value),
     hysteresis: parseFloat(document.getElementById('hysteresis').value),
     tempFilterAlpha: parseFloat(document.getElementById('tempFilterAlpha').value)
   }, 'msgProtection');
+}
+function sendOtaUpdate() {
+  const url = document.getElementById('otaUrl').value.trim();
+  if (!url) {
+    const msg = document.getElementById('msgOta');
+    msg.textContent = 'Introdu URL-ul firmware-ului (.bin) intai.';
+    setTimeout(() => msg.textContent = '', 2500);
+    return;
+  }
+  if (!confirm('Placa va descarca si se va flasha cu firmware-ul de la:\n' + url + '\n\nDaca fisierul e corupt sau incompatibil, placa poate ramane neaccesibila de la distanta si necesita recuperare fizica prin USB. Continui?')) {
+    return;
+  }
+  publishControl(OTA_TOPIC, { url }, 'msgOta');
 }
 
 document.querySelectorAll('input').forEach(el => {
