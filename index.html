@@ -277,6 +277,7 @@
     <span class="stat-label" id="pumpLabel">--%</span>
   </div>
   <div class="meter-track"><div class="meter-fill" id="pumpFill"></div></div>
+  <div class="msg" id="valveNote" style="margin-top:8px"></div>
 </div>
 
 <div class="seg" role="tablist">
@@ -658,6 +659,19 @@ client.on('message', (topic, payload) => {
   document.getElementById('pumpLabel').textContent = Math.round(d.pumpPercent) + '%';
   document.getElementById('pumpFill').style.width = Math.round(d.pumpPercent) + '%';
   document.getElementById('testBadge').classList.toggle('hidden', !d.testOverride);
+
+  const valveNote = document.getElementById('valveNote');
+  if (d.testOverride) {
+    valveNote.textContent = '';
+  } else if (d.valveOnSecondary === false) {
+    const target = typeof d.targetPumpPercent === 'number' ? Math.round(d.targetPumpPercent) : null;
+    valveNote.textContent = 'Fara alimentare de forta - vana SR223 e pe circuitul boilerului'
+      + (target !== null && target > 0 ? ` (ar rula la ${target}% daca ar avea curent)` : '') + '.';
+  } else if (d.valveOnSecondary === true) {
+    valveNote.textContent = 'Vana SR223 pe circuitul secundar - pompa alimentata.';
+  } else {
+    valveNote.textContent = '';
+  }
 
   updateState(d.temperature, d.tMin, d.tMax);
 
