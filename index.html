@@ -40,11 +40,13 @@
     --status-warning: #fab219;
     --status-serious: #ec835a;
     --status-critical: #d03b3b;
-    --hist-t1: #e34948;
-    --hist-t1r: #2a78d6;
-    --hist-t2: #f0a868;
-    --hist-t3: #d9660a;
-    --hist-t4: #12873f;
+    /* paleta categoriala validata (contrast CVD/normal-vision) - vezi skill-ul dataviz;
+       ordine fixa slot1..5: albastru, verde, magenta, galben, aqua */
+    --hist-t1: #2a78d6;
+    --hist-t1r: #008300;
+    --hist-t2: #e87ba4;
+    --hist-t3: #eda100;
+    --hist-t4: #1baf7a;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -70,11 +72,11 @@
       --cat-violet: #9085e9;
       --cat-red: #e66767;
       --cat-orange: #d95926;
-      --hist-t1: #e66767;
-      --hist-t1r: #3987e5;
-      --hist-t2: #f2b578;
-      --hist-t3: #e2760f;
-      --hist-t4: #1f9e4c;
+      --hist-t1: #3987e5;
+      --hist-t1r: #008300;
+      --hist-t2: #d55181;
+      --hist-t3: #c98500;
+      --hist-t4: #199e70;
     }
   }
   :root[data-theme="light"] {
@@ -86,7 +88,7 @@
     --state-cold: #2f9e44; --state-mid: #2a78d6; --state-hot: #d03b3b;
     --cat-blue: #2a78d6; --cat-aqua: #1baf7a; --cat-yellow: #eda100;
     --cat-violet: #4a3aa7; --cat-red: #e34948; --cat-orange: #eb6834;
-    --hist-t1: #e34948; --hist-t1r: #2a78d6; --hist-t2: #f0a868; --hist-t3: #d9660a; --hist-t4: #12873f;
+    --hist-t1: #2a78d6; --hist-t1r: #008300; --hist-t2: #e87ba4; --hist-t3: #eda100; --hist-t4: #1baf7a;
   }
   :root[data-theme="dark"] {
     --surface-page: #0d100d; --surface-card: #171b16; --surface-inset: #21261f;
@@ -97,7 +99,7 @@
     --state-cold: #3ecf70; --state-mid: #4c92e8; --state-hot: #e05555;
     --cat-blue: #3987e5; --cat-aqua: #199e70; --cat-yellow: #c98500;
     --cat-violet: #9085e9; --cat-red: #e66767; --cat-orange: #d95926;
-    --hist-t1: #e66767; --hist-t1r: #3987e5; --hist-t2: #f2b578; --hist-t3: #e2760f; --hist-t4: #1f9e4c;
+    --hist-t1: #3987e5; --hist-t1r: #008300; --hist-t2: #d55181; --hist-t3: #c98500; --hist-t4: #199e70;
   }
   * { box-sizing: border-box; }
   body {
@@ -183,7 +185,7 @@
   .schematic-card svg { width: 100%; height: auto; display: block; }
   .legend-row { display: flex; gap: 16px; margin-top: 8px; font-size: 0.74em; color: var(--text-secondary); }
   .legend-swatch { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
-  .temp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .temp-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
   .temp-tile { background: var(--surface-inset); border-radius: 10px; padding: 8px 6px; text-align: center; }
   .tt-label { font-size: 0.64em; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
   .tt-value { font-size: 1.08em; font-weight: 700; margin-top: 2px; }
@@ -225,6 +227,23 @@
     white-space: nowrap; z-index: 5; line-height: 1.5; font-weight: 600;
   }
   .hist-empty-msg { text-align: center; font-size: 0.82em; color: var(--text-muted); padding: 20px 0; }
+  .hist-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .hist-expand-btn {
+    flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-inset);
+    color: var(--text-secondary); border-radius: 9px; width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+  }
+  .hist-expand-btn:active { opacity: 0.8; }
+  .hist-fullscreen {
+    position: fixed; inset: 0; z-index: 100; background: var(--surface-page);
+    display: flex; flex-direction: column; padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+  .hist-fullscreen.hidden { display: none; }
+  .hist-fullscreen-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .hist-fullscreen-header span { font-size: 1.05em; font-weight: 700; }
+  .hist-chart-wrap-full { flex: 1; display: flex; align-items: center; margin-top: 10px; }
+  .hist-chart-wrap-full svg { width: 100%; height: auto; }
   .pipe { transition: opacity 0.4s ease; }
   .pipe.idle { opacity: 0.3; }
   .pipe.flowing { stroke-dasharray: 9 6; animation: flowDash 0.8s linear infinite; }
@@ -360,10 +379,14 @@
     <path id="pipeHotTrunk" class="pipe pipe-hot" d="M75,95 L75,150 L140,150" fill="none" stroke="var(--cat-red)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
     <!-- ramura cald -> rezervor 1 (T3) -->
     <path id="pipeToTank1" class="pipe pipe-hot pipe-branch" d="M150,160 L150,190" fill="none" stroke="var(--cat-red)" stroke-width="3.5" stroke-linecap="round"/>
-    <!-- ramura cald -> rezervor 2 / buffer (T4) -->
+    <!-- ramura cald -> rezervor 2 / puffer (T4) -->
     <path id="pipeToTank2" class="pipe pipe-hot pipe-branch" d="M160,150 L223,150 L223,190" fill="none" stroke="var(--cat-red)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- retur rece: rezervoare -> pompa -> colector -->
-    <path id="pipeCold" class="pipe pipe-cold" d="M150,300 L150,330 L223,330 L223,300 M45,330 L150,330 M45,330 L45,180 L30,180" fill="none" stroke="var(--cat-blue)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- retur rece: trunchi comun jonctiune -> pompa -> colector (mereu activ cat timp pompa ruleaza) -->
+    <path id="pipeColdTrunk" class="pipe pipe-cold" d="M150,330 L45,330 L45,180 L30,180" fill="none" stroke="var(--cat-blue)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- ramura retur <- rezervor 1 / boiler (T3) - sens verificat empiric, deja corect -->
+    <path id="pipeColdFromTank1" class="pipe pipe-cold pipe-branch" d="M150,300 L150,330" fill="none" stroke="var(--cat-blue)" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- ramura retur <- rezervor 2 / puffer (T4) - sens corectat 2026-07-19 (era desenat invers) -->
+    <path id="pipeColdFromTank2" class="pipe pipe-cold pipe-branch" d="M223,315 L223,330 L150,330" fill="none" stroke="var(--cat-blue)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
 
     <!-- colector solar -->
     <line x1="30" y1="180" x2="75" y2="95" stroke="url(#collectorGrad)" stroke-width="15" stroke-linecap="round"/>
@@ -379,6 +402,11 @@
     <circle id="t1Dot" cx="75" cy="95" r="4" fill="var(--cat-red)"/>
     <text x="75" y="66" text-anchor="middle" font-size="9" fill="var(--text-muted)" font-weight="700">T1</text>
     <text id="t1Value" x="75" y="52" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text-primary)">--&deg;</text>
+
+    <!-- T1 ESP32 - citire independenta a placii pe acelasi senzor fizic (comparatie cu T1 SR223) -->
+    <circle id="t1EspDot" cx="95" cy="118" r="3.5" fill="var(--cat-aqua)"/>
+    <text x="103" y="115" text-anchor="start" font-size="8" fill="var(--text-muted)" font-weight="700">T1<tspan font-size="5.5" dy="1.5">ESP32</tspan></text>
+    <text id="t1EspValue" x="103" y="129" text-anchor="start" font-size="11" font-weight="700" fill="var(--text-primary)">--&deg;</text>
 
     <!-- vana cu 3 cai, alimentata de releul R4 - desenata DUPA tevi ca sa fie vizibila deasupra lor -->
     <circle cx="150" cy="150" r="10" fill="var(--cat-orange)" stroke="var(--surface-card)" stroke-width="2.5"/>
@@ -396,14 +424,17 @@
     <!-- rezervoare -->
     <rect x="117" y="190" width="66" height="110" rx="13" fill="url(#tankGrad)" stroke="var(--border)" stroke-width="1.5"/>
     <path d="M134,215 L144,225 L134,235 L144,245 L134,255 L144,265" fill="none" stroke="var(--cat-blue)" stroke-width="2" opacity="0.6"/>
-    <rect x="190" y="190" width="66" height="110" rx="13" fill="url(#tankGrad)" stroke="var(--border)" stroke-width="1.5"/>
-    <path d="M207,215 L217,225 L207,235 L217,245 L207,255 L217,265" fill="none" stroke="var(--cat-blue)" stroke-width="2" opacity="0.6"/>
+    <text x="150" y="285" text-anchor="middle" font-size="11" font-weight="700" fill="var(--cat-yellow)">Boiler</text>
+    <!-- rezervor 2 / puffer - marit fata de boiler (mult mai mare in realitate), 2026-07-19 -->
+    <rect x="190" y="190" width="80" height="125" rx="13" fill="url(#tankGrad)" stroke="var(--border)" stroke-width="1.5"/>
+    <path d="M207,215 L217,225 L207,235 L217,245 L207,255 L217,265 L207,275 L217,285" fill="none" stroke="var(--cat-blue)" stroke-width="2" opacity="0.6"/>
+    <text x="230" y="300" text-anchor="middle" font-size="11" font-weight="700" fill="var(--cat-yellow)">Puffer</text>
 
-    <!-- T3 - boiler sus -->
-    <line x1="178" y1="193" x2="196" y2="178" stroke="var(--border)" stroke-width="1.5"/>
+    <!-- T3 - boiler sus (eticheta mutata intre cele doua circuite de tur, 2026-07-19 - nu se mai suprapune peste teava spre puffer) -->
+    <line x1="178" y1="193" x2="184" y2="188" stroke="var(--border)" stroke-width="1.5"/>
     <circle id="t3Dot" cx="178" cy="193" r="4" fill="var(--cat-red)"/>
-    <text x="200" y="176" text-anchor="start" font-size="9" fill="var(--text-muted)" font-weight="700">T3</text>
-    <text id="t3Value" x="200" y="190" text-anchor="start" font-size="13" font-weight="700" fill="var(--text-primary)">--&deg;</text>
+    <text x="186" y="171" text-anchor="middle" font-size="9" fill="var(--text-muted)" font-weight="700">T3</text>
+    <text id="t3Value" x="186" y="185" text-anchor="middle" font-size="13" font-weight="700" fill="var(--text-primary)">--&deg;</text>
 
     <!-- T2 - boiler jos -->
     <line x1="117" y1="275" x2="96" y2="275" stroke="var(--border)" stroke-width="1.5"/>
@@ -411,11 +442,11 @@
     <text x="93" y="271" text-anchor="end" font-size="9" fill="var(--text-muted)" font-weight="700">T2</text>
     <text id="t2Value" x="93" y="285" text-anchor="end" font-size="13" font-weight="700" fill="var(--text-primary)">--&deg;</text>
 
-    <!-- T4 - buffer -->
-    <line x1="256" y1="250" x2="277" y2="250" stroke="var(--border)" stroke-width="1.5"/>
-    <circle id="t4Dot" cx="256" cy="250" r="4" fill="var(--cat-red)"/>
-    <text x="281" y="246" text-anchor="start" font-size="9" fill="var(--text-muted)" font-weight="700">T4</text>
-    <text id="t4Value" x="281" y="260" text-anchor="start" font-size="13" font-weight="700" fill="var(--text-primary)">--&deg;</text>
+    <!-- T4 - puffer (pozitie recalculata pentru tancul marit; eticheta ancorata din dreapta, la x fix, ca sa nu depinda de latimea tancului) -->
+    <line x1="270" y1="258" x2="295" y2="258" stroke="var(--border)" stroke-width="1.5"/>
+    <circle id="t4Dot" cx="270" cy="258" r="4" fill="var(--cat-red)"/>
+    <text x="322" y="254" text-anchor="end" font-size="9" fill="var(--text-muted)" font-weight="700">T4</text>
+    <text id="t4Value" x="322" y="268" text-anchor="end" font-size="13" font-weight="700" fill="var(--text-primary)">--&deg;</text>
   </svg>
   <div class="legend-row">
     <span><span class="legend-swatch" style="background:var(--cat-red)"></span>Tur (cald)</span>
@@ -430,24 +461,19 @@
   </div>
   <div class="card-desc">Canalele fara senzor montat inca arata valori fara semnificatie (ex. T3) - dispar automat cand montezi senzorul.</div>
   <div class="temp-grid">
-    <div class="temp-tile"><div class="tt-label">T0</div><div class="tt-value" id="gridT0">--</div></div>
     <div class="temp-tile"><div class="tt-label">T1 Colector</div><div class="tt-value" id="gridT1">--</div></div>
+    <div class="temp-tile"><div class="tt-label">T1<sub>ESP32</sub></div><div class="tt-value" id="gridT1Esp">--</div></div>
     <div class="temp-tile"><div class="tt-label">T2 Boiler jos</div><div class="tt-value" id="gridT2">--</div></div>
     <div class="temp-tile"><div class="tt-label">T3 Boiler sus</div><div class="tt-value" id="gridT3">--</div></div>
-    <div class="temp-tile"><div class="tt-label">T4 Buffer</div><div class="tt-value" id="gridT4">--</div></div>
-    <div class="temp-tile"><div class="tt-label">T5</div><div class="tt-value" id="gridT5">--</div></div>
-    <div class="temp-tile"><div class="tt-label">T6</div><div class="tt-value" id="gridT6">--</div></div>
-    <div class="temp-tile"><div class="tt-label">TVFS</div><div class="tt-value" id="gridTVFS">--</div></div>
+    <div class="temp-tile"><div class="tt-label">T4 Puffer</div><div class="tt-value" id="gridT4">--</div></div>
+    <!-- T0/T5/T6/TVFS ascunse la cererea userului (2026-07-19) - neutilizate momentan, dar ramase
+         in DOM + logica de actualizare, ca sa poata fi reafisate usor (scoate clasa "hidden")
+         daca devin relevante ulterior. -->
+    <div class="temp-tile hidden"><div class="tt-label">T0</div><div class="tt-value" id="gridT0">--</div></div>
+    <div class="temp-tile hidden"><div class="tt-label">T5</div><div class="tt-value" id="gridT5">--</div></div>
+    <div class="temp-tile hidden"><div class="tt-label">T6</div><div class="tt-value" id="gridT6">--</div></div>
+    <div class="temp-tile hidden"><div class="tt-label">TVFS</div><div class="tt-value" id="gridTVFS">--</div></div>
   </div>
-</div>
-
-<div class="card">
-  <div class="card-title">Temperatura tinta boiler</div>
-  <div class="card-desc">Singurul parametru care poate fi schimbat de la distanta.</div>
-  <label>Temperatura tinta (&deg;C)</label>
-  <input type="number" step="1" min="0" max="100" id="sr223TempSet">
-  <button class="save-btn" onclick="saveSr223TempSet()">Salveaza</button>
-  <div class="msg" id="sr223Msg"></div>
 </div>
 
 <div class="card">
@@ -514,7 +540,12 @@
 <div id="section-istoric" class="hidden">
 <div id="histBadge" class="badge badge-warning">Se incarca istoricul...</div>
 <div class="card">
-  <div class="card-title" id="histTitle">Istoric temperaturi (ultimele 24h)</div>
+  <div class="hist-title-row">
+    <div class="card-title" id="histTitle" style="margin-bottom:0">Istoric temperaturi (ultimele 24h)</div>
+    <button class="hist-expand-btn" onclick="openHistFullscreen()" aria-label="Extinde graficul pe tot ecranul" title="Extinde pe tot ecranul">
+      <svg class="icon"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+    </button>
+  </div>
   <div class="card-desc">T1<sub>retur</sub> (ESP32) apare gol pana se conecteaza placa la raportarea catre server.</div>
 
   <label>De la</label>
@@ -528,11 +559,27 @@
 
   <div class="hist-legend" id="histLegend" style="margin-top:16px;"></div>
   <div class="hist-chart-wrap">
-    <svg id="histChart" viewBox="0 0 380 220"></svg>
+    <svg id="histChart" viewBox="0 0 380 220" onclick="openHistFullscreen()" style="cursor:zoom-in"></svg>
     <div class="hist-tooltip" id="histTooltip"></div>
   </div>
   <div class="hist-empty-msg hidden" id="histEmptyMsg">Inca nu exista date inregistrate.</div>
 </div>
+</div>
+
+<!-- ================= ISTORIC - VIZUALIZARE PE TOT ECRANUL ================= -->
+<div id="histFullscreen" class="hist-fullscreen hidden">
+  <div class="hist-fullscreen-header">
+    <span id="histTitleFull">Istoric temperaturi</span>
+    <button class="hist-expand-btn" onclick="closeHistFullscreen()" aria-label="Inchide">
+      <svg class="icon"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="hist-legend" id="histLegendFull"></div>
+  <div class="hist-chart-wrap hist-chart-wrap-full">
+    <svg id="histChartFull" viewBox="0 0 380 520"></svg>
+    <div class="hist-tooltip" id="histTooltipFull"></div>
+  </div>
+  <div class="hist-empty-msg hidden" id="histEmptyMsgFull">Inca nu exista date inregistrate.</div>
 </div>
 
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
@@ -659,6 +706,12 @@ client.on('message', (topic, payload) => {
   document.getElementById('pumpLabel').textContent = Math.round(d.pumpPercent) + '%';
   document.getElementById('pumpFill').style.width = Math.round(d.pumpPercent) + '%';
   document.getElementById('testBadge').classList.toggle('hidden', !d.testOverride);
+
+  // T1 citit independent de placa (acelasi senzor fizic ca T1 SR223) - afisat si pe schema
+  // SR223 si in grila de temperaturi, pentru comparatie directa intre cele doua citiri.
+  setSchematicTemp('t1EspValue', 't1EspDot', d.temperature);
+  const gridT1Esp = document.getElementById('gridT1Esp');
+  if (gridT1Esp) { gridT1Esp.textContent = fmtTemp(d.temperature); gridT1Esp.style.color = tempColor(d.temperature); }
 
   const valveNote = document.getElementById('valveNote');
   if (d.testOverride) {
@@ -803,12 +856,13 @@ if ('serviceWorker' in navigator) {
 const SR223_WORKER = 'https://sr223-proxy.dan-tt.workers.dev';
 const SR223_TOKEN = 'hi1LvXcj3Js2xQ3NWHPV0BHpj4nsVbC3';
 const SR223_POLL_MS = 20000;
-let sr223Editing = false;
 let sr223PollTimer = null;
 
+const TEMP_COLOR_MIN = 40; // sub aceasta valoare - albastru pur
+const TEMP_COLOR_MAX = 70; // peste aceasta valoare - rosu pur
 function tempColor(v) {
   if (typeof v !== 'number') return cssVar('--text-muted');
-  const t = Math.max(0, Math.min(1, v / 100));
+  const t = Math.max(0, Math.min(1, (v - TEMP_COLOR_MIN) / (TEMP_COLOR_MAX - TEMP_COLOR_MIN)));
   const cold = hexToRgb(cssVar('--cat-blue'));
   const hot = hexToRgb(cssVar('--cat-red'));
   const rgb = cold.map((c, i) => Math.round(c + (hot[i] - c) * t));
@@ -848,7 +902,7 @@ function renderSr223(d) {
   const r1 = typeof d.pumpSpeeds.R1 === 'number' ? d.pumpSpeeds.R1 : 0;
   document.getElementById('r1Value').textContent = r1 + '%';
   const running = r1 > 0;
-  ['pipeHotTrunk', 'pipeToTank1', 'pipeToTank2', 'pipeCold'].forEach((id) => {
+  ['pipeHotTrunk', 'pipeToTank1', 'pipeToTank2', 'pipeColdTrunk', 'pipeColdFromTank1', 'pipeColdFromTank2'].forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.classList.toggle('flowing', running);
@@ -857,9 +911,9 @@ function renderSr223(d) {
   document.getElementById('pumpIcon').classList.toggle('idle', !running);
 
   // R4 e releul care alimenteaza vana cu 3 cai: cand e activat, inchide returul boilerului
-  // si deschide returul bufferului (si, printr-un contact auxiliar, alimenteaza cu tensiune
-  // de forta pompa secundara de pe circuitul bufferului, cea comandata PWM de ESP32).
-  // Presupunere: DP-ul Tuya "r4" > 0 = releu activat = rutat spre buffer; r4 = 0 = boiler.
+  // si deschide returul pufferului (si, printr-un contact auxiliar, alimenteaza cu tensiune
+  // de forta pompa secundara de pe circuitul pufferului, cea comandata PWM de ESP32).
+  // Presupunere: DP-ul Tuya "r4" > 0 = releu activat = rutat spre puffer; r4 = 0 = boiler.
   // NEVERIFICAT EMPIRIC daca valoarea numerica chiar reflecta starea releului - de confirmat
   // cand sistemul comuta vizibil intre incarcarea celor doua rezervoare.
   const toTank2 = (typeof d.pumpSpeeds.R4 === 'number' ? d.pumpSpeeds.R4 : 0) > 0;
@@ -867,6 +921,10 @@ function renderSr223(d) {
   const pipeToTank2 = document.getElementById('pipeToTank2');
   if (pipeToTank1) pipeToTank1.classList.toggle('inactive-path', toTank2);
   if (pipeToTank2) pipeToTank2.classList.toggle('inactive-path', !toTank2);
+  const pipeColdFromTank1 = document.getElementById('pipeColdFromTank1');
+  const pipeColdFromTank2 = document.getElementById('pipeColdFromTank2');
+  if (pipeColdFromTank1) pipeColdFromTank1.classList.toggle('inactive-path', toTank2);
+  if (pipeColdFromTank2) pipeColdFromTank2.classList.toggle('inactive-path', !toTank2);
 
   const tempCells = {
     gridT0: d.temps.T0, gridT1: d.temps.T1_colector, gridT2: d.temps.T2_boilerJos,
@@ -921,32 +979,12 @@ function renderSr223(d) {
     faultText.textContent = 'Fara alarme';
   }
 
-  if (!sr223Editing && typeof d.tempSet === 'number') {
-    document.getElementById('sr223TempSet').value = d.tempSet;
-  }
 }
 
-async function saveSr223TempSet() {
-  const val = parseFloat(document.getElementById('sr223TempSet').value);
-  const msg = document.getElementById('sr223Msg');
-  msg.textContent = 'Se trimite...';
-  try {
-    const res = await fetch(SR223_WORKER + '/settemp', {
-      method: 'POST',
-      headers: { 'X-Proxy-Token': SR223_TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: val })
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    msg.textContent = 'Salvat!';
-  } catch (e) {
-    msg.textContent = 'Eroare la salvare.';
-  }
-  setTimeout(() => msg.textContent = '', 2500);
-}
-
-const sr223TempInput = document.getElementById('sr223TempSet');
-sr223TempInput.addEventListener('focus', () => sr223Editing = true);
-sr223TempInput.addEventListener('blur', () => sr223Editing = false);
+// saveSr223TempSet() a fost scoasa doar din interfata (2026-07-19, cerinta explicita) - campul
+// "Temperatura tinta boiler" s-a dovedit nefunctional (vezi CONTEXT_PROIECT.md sectiunea 7.4),
+// eliminat vizual pentru moment. Ramane de scos si din firmware la urmatoarea interventie pe placa;
+// endpoint-ul /settemp din worker-ul Cloudflare ramane neatins (nu strica nimic daca ramane nefolosit).
 
 // ================= Istoric (grafic comparativ temperaturi) =================
 const HIST_SERIES = [
@@ -954,7 +992,7 @@ const HIST_SERIES = [
   { key: 't1r', label: 'T1<sub>retur</sub> ESP32', color: '--hist-t1r' },
   { key: 't2',  label: 'T2 Boiler jos', color: '--hist-t2'  },
   { key: 't3',  label: 'T3 Boiler sus', color: '--hist-t3'  },
-  { key: 't4',  label: 'T4 Buffer',     color: '--hist-t4'  },
+  { key: 't4',  label: 'T4 Puffer',     color: '--hist-t4'  },
 ];
 const HIST_POLL_MS = 60000;
 let histPollTimer = null;
@@ -1002,6 +1040,7 @@ function resetHistFilter() {
 async function fetchHistory() {
   const badge = document.getElementById('histBadge');
   const title = document.getElementById('histTitle');
+  const titleFull = document.getElementById('histTitleFull');
   try {
     let url;
     if (histFilterFrom && histFilterTo) {
@@ -1015,19 +1054,32 @@ async function fetchHistory() {
       url = SR223_WORKER + '/history?hours=24';
       title.textContent = 'Istoric temperaturi (ultimele 24h)';
     }
+    titleFull.textContent = title.textContent;
     const res = await fetch(url, { headers: { 'X-Proxy-Token': SR223_TOKEN } });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     histData = await res.json();
     badge.classList.add('hidden');
-    renderHistChart();
+    renderAllHist();
   } catch (e) {
     badge.textContent = 'Istoric indisponibil - reincercare...';
     badge.classList.remove('hidden');
   }
 }
 
-function renderHistLegend() {
-  const legend = document.getElementById('histLegend');
+// Randeaza atat graficul mic (incorporat in tab) cat si, daca e deschis, cel de pe tot ecranul -
+// aceeasi sursa de date (histData/histVisible), doua tinte de randare parametrizate pe id-uri.
+function renderAllHist() {
+  renderHistLegendInto('histLegend');
+  renderHistChartInto('histChart', 'histTooltip', 'histEmptyMsg', 380, 220);
+  if (!document.getElementById('histFullscreen').classList.contains('hidden')) {
+    renderHistLegendInto('histLegendFull');
+    renderHistChartInto('histChartFull', 'histTooltipFull', 'histEmptyMsgFull', 380, 520);
+  }
+}
+
+function renderHistLegendInto(containerId) {
+  const legend = document.getElementById(containerId);
+  if (!legend) return;
   legend.innerHTML = '';
   HIST_SERIES.forEach((s) => {
     const points = (histData && histData[s.key]) || [];
@@ -1035,27 +1087,26 @@ function renderHistLegend() {
     chip.className = 'hist-chip' + (histVisible[s.key] ? '' : ' off') + (points.length === 0 ? ' empty' : '');
     chip.innerHTML = `<span class="dot" style="background:${cssVar(s.color)}"></span>${s.label}`;
     if (points.length > 0) {
-      chip.onclick = () => { histVisible[s.key] = !histVisible[s.key]; renderHistChart(); };
+      chip.onclick = () => { histVisible[s.key] = !histVisible[s.key]; renderAllHist(); };
     }
     legend.appendChild(chip);
   });
 }
 
-function renderHistChart() {
-  renderHistLegend();
-  const svg = document.getElementById('histChart');
-  const emptyMsg = document.getElementById('histEmptyMsg');
-  if (!histData) return;
+function renderHistChartInto(svgId, tooltipId, emptyMsgId, W, H) {
+  const svg = document.getElementById(svgId);
+  const emptyMsg = document.getElementById(emptyMsgId);
+  if (!svg || !histData) return;
 
   const activeSeries = HIST_SERIES.filter((s) => histVisible[s.key] && (histData[s.key] || []).length > 0);
   if (activeSeries.length === 0) {
     svg.innerHTML = '';
-    emptyMsg.classList.remove('hidden');
+    if (emptyMsg) emptyMsg.classList.remove('hidden');
     return;
   }
-  emptyMsg.classList.add('hidden');
+  if (emptyMsg) emptyMsg.classList.add('hidden');
 
-  const W = 380, H = 220, PAD_L = 32, PAD_R = 8, PAD_T = 10, PAD_B = 20;
+  const PAD_L = 32, PAD_R = 8, PAD_T = 10, PAD_B = 20;
   const from = histRangeFrom;
   const to = histRangeTo;
   const span = (to - from) || 1;
@@ -1090,13 +1141,14 @@ function renderHistChart() {
     const last = seriesPts[seriesPts.length - 1];
     html += `<circle cx="${x(last[0])}" cy="${y(last[1])}" r="3.2" fill="${color}"/>`;
   });
-  html += `<line class="hist-crosshair" id="histCrosshair" x1="0" y1="${PAD_T}" x2="0" y2="${H - PAD_B}"/>`;
+  const crosshairId = svgId + 'Crosshair';
+  html += `<line class="hist-crosshair" id="${crosshairId}" x1="0" y1="${PAD_T}" x2="0" y2="${H - PAD_B}"/>`;
 
   svg.innerHTML = html;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
-  const tooltip = document.getElementById('histTooltip');
-  const crosshair = document.getElementById('histCrosshair');
+  const tooltip = document.getElementById(tooltipId);
+  const crosshair = document.getElementById(crosshairId);
 
   // Comuna pentru mouse (hover) si touch (glisare) - pe telefon, tine degetul apasat si
   // gliseaza pentru a citi valorile in timp real, nu doar un singur "tap" static.
@@ -1143,6 +1195,21 @@ function renderHistChart() {
   svg.ontouchmove = (e) => { e.preventDefault(); updateCrosshair(e.touches[0].clientX); };
   svg.ontouchend = hideCrosshair;
 }
+
+function openHistFullscreen() {
+  document.getElementById('histTitleFull').textContent = document.getElementById('histTitle').textContent;
+  document.getElementById('histFullscreen').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  renderHistLegendInto('histLegendFull');
+  renderHistChartInto('histChartFull', 'histTooltipFull', 'histEmptyMsgFull', 380, 520);
+}
+function closeHistFullscreen() {
+  document.getElementById('histFullscreen').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('histFullscreen').classList.contains('hidden')) closeHistFullscreen();
+});
 
 function showSection(name) {
   document.querySelectorAll('#mainNav .seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.section === name));
