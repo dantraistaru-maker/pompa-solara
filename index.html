@@ -883,8 +883,8 @@ function tempColor(v) {
 // Plaja separata pt temperaturile din tankuri (T2/T3/T4) - culori mai vii/intense
 // decat paleta categoriala standard, cerinta explicita a userului 2026-07-20.
 // T1 (colector) ramane pe tempColor() de mai sus, neschimbata.
-const TANK_TEMP_COLOR_MIN = 40; // sub aceasta valoare - albastru intens/viu pur
-const TANK_TEMP_COLOR_MAX = 80; // peste aceasta valoare - rosu aprins pur
+const TANK_TEMP_COLOR_MIN = 50; // sub aceasta valoare - albastru intens/viu pur
+const TANK_TEMP_COLOR_MAX = 70; // peste aceasta valoare - rosu aprins pur
 function tempColorTank(v) {
   if (typeof v !== 'number') return cssVar('--text-muted');
   const t = Math.max(0, Math.min(1, (v - TANK_TEMP_COLOR_MIN) / (TANK_TEMP_COLOR_MAX - TANK_TEMP_COLOR_MIN)));
