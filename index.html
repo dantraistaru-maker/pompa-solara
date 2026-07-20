@@ -36,6 +36,8 @@
     --cat-violet: #4a3aa7;
     --cat-red: #e34948;
     --cat-orange: #eb6834;
+    --tank-cold: #0047d1;
+    --tank-hot: #d62828;
     --status-good: #0ca30c;
     --status-warning: #fab219;
     --status-serious: #ec835a;
@@ -72,6 +74,8 @@
       --cat-violet: #9085e9;
       --cat-red: #e66767;
       --cat-orange: #d95926;
+      --tank-cold: #4d8bff;
+      --tank-hot: #ff6255;
       --hist-t1: #3987e5;
       --hist-t1r: #008300;
       --hist-t2: #d55181;
@@ -88,6 +92,7 @@
     --state-cold: #2f9e44; --state-mid: #2a78d6; --state-hot: #d03b3b;
     --cat-blue: #2a78d6; --cat-aqua: #1baf7a; --cat-yellow: #eda100;
     --cat-violet: #4a3aa7; --cat-red: #e34948; --cat-orange: #eb6834;
+    --tank-cold: #0047d1; --tank-hot: #d62828;
     --hist-t1: #2a78d6; --hist-t1r: #008300; --hist-t2: #e87ba4; --hist-t3: #eda100; --hist-t4: #1baf7a;
   }
   :root[data-theme="dark"] {
@@ -99,6 +104,7 @@
     --state-cold: #3ecf70; --state-mid: #4c92e8; --state-hot: #e05555;
     --cat-blue: #3987e5; --cat-aqua: #199e70; --cat-yellow: #c98500;
     --cat-violet: #9085e9; --cat-red: #e66767; --cat-orange: #d95926;
+    --tank-cold: #4d8bff; --tank-hot: #ff6255;
     --hist-t1: #3987e5; --hist-t1r: #008300; --hist-t2: #d55181; --hist-t3: #c98500; --hist-t4: #199e70;
   }
   * { box-sizing: border-box; }
@@ -429,11 +435,11 @@
     <!-- rezervoare -->
     <rect x="117" y="190" width="66" height="110" rx="13" fill="url(#tankGrad)" stroke="var(--border)" stroke-width="1.5"/>
     <path d="M134,215 L144,225 L134,235 L144,245 L134,255 L144,265" fill="none" stroke="var(--cat-blue)" stroke-width="2" opacity="0.6"/>
-    <text x="150" y="285" text-anchor="middle" font-size="11" font-weight="700" fill="#ffd400">Boiler</text>
+    <text x="150" y="285" text-anchor="middle" font-size="19" font-weight="700" fill="#ffd400">Boiler</text>
     <!-- rezervor 2 / puffer - marit fata de boiler (mult mai mare in realitate), 2026-07-19 -->
     <rect x="190" y="190" width="80" height="125" rx="13" fill="url(#tankGrad)" stroke="var(--border)" stroke-width="1.5"/>
     <path d="M207,215 L217,225 L207,235 L217,245 L207,255 L217,265 L207,275 L217,285" fill="none" stroke="var(--cat-blue)" stroke-width="2" opacity="0.6"/>
-    <text x="230" y="300" text-anchor="middle" font-size="11" font-weight="700" fill="#ffd400">Puffer</text>
+    <text x="230" y="300" text-anchor="middle" font-size="19" font-weight="700" fill="#ffd400">Puffer</text>
 
     <!-- T3 - boiler sus (eticheta mutata intre cele doua circuite de tur, 2026-07-19 - nu se mai suprapune peste teava spre puffer) -->
     <line x1="178" y1="193" x2="184" y2="188" stroke="var(--border)" stroke-width="1.5"/>
@@ -874,12 +880,26 @@ function tempColor(v) {
   const rgb = cold.map((c, i) => Math.round(c + (hot[i] - c) * t));
   return 'rgb(' + rgb.join(',') + ')';
 }
+// Plaja separata pt temperaturile din tankuri (T2/T3/T4) - culori mai vii/intense
+// decat paleta categoriala standard, cerinta explicita a userului 2026-07-20.
+// T1 (colector) ramane pe tempColor() de mai sus, neschimbata.
+const TANK_TEMP_COLOR_MIN = 40; // sub aceasta valoare - albastru intens/viu pur
+const TANK_TEMP_COLOR_MAX = 80; // peste aceasta valoare - rosu aprins pur
+function tempColorTank(v) {
+  if (typeof v !== 'number') return cssVar('--text-muted');
+  const t = Math.max(0, Math.min(1, (v - TANK_TEMP_COLOR_MIN) / (TANK_TEMP_COLOR_MAX - TANK_TEMP_COLOR_MIN)));
+  const cold = hexToRgb(cssVar('--tank-cold'));
+  const hot = hexToRgb(cssVar('--tank-hot'));
+  const rgb = cold.map((c, i) => Math.round(c + (hot[i] - c) * t));
+  return 'rgb(' + rgb.join(',') + ')';
+}
 function fmtTemp(v) {
   return typeof v === 'number' ? v.toFixed(1) + '°' : '—';
 }
-function setSchematicTemp(valueId, dotId, v) {
+function setSchematicTemp(valueId, dotId, v, colorFn) {
+  const fn = colorFn || tempColor;
   const el = document.getElementById(valueId);
-  const color = tempColor(v);
+  const color = fn(v);
   if (el) { el.textContent = fmtTemp(v); el.style.fill = color; }
   const dot = document.getElementById(dotId);
   if (dot) dot.style.fill = color;
@@ -901,9 +921,9 @@ async function fetchSr223Status() {
 
 function renderSr223(d) {
   setSchematicTemp('t1Value', 't1Dot', d.temps.T1_colector);
-  setSchematicTemp('t2Value', 't2Dot', d.temps.T2_boilerJos);
-  setSchematicTemp('t3Value', 't3Dot', d.temps.T3_boilerSus);
-  setSchematicTemp('t4Value', 't4Dot', d.temps.T4_buffer);
+  setSchematicTemp('t2Value', 't2Dot', d.temps.T2_boilerJos, tempColorTank);
+  setSchematicTemp('t3Value', 't3Dot', d.temps.T3_boilerSus, tempColorTank);
+  setSchematicTemp('t4Value', 't4Dot', d.temps.T4_buffer, tempColorTank);
 
   const r1 = typeof d.pumpSpeeds.R1 === 'number' ? d.pumpSpeeds.R1 : 0;
   document.getElementById('r1Value').textContent = r1 + '%';
@@ -937,11 +957,12 @@ function renderSr223(d) {
     gridT3: d.temps.T3_boilerSus, gridT4: d.temps.T4_buffer, gridT5: d.temps.T5,
     gridT6: d.temps.T6, gridTVFS: d.temps.TVFS
   };
+  const TANK_GRID_IDS = ['gridT2', 'gridT3', 'gridT4']; // aceiasi senzori de tank ca in schema
   for (const id in tempCells) {
     const el = document.getElementById(id);
     if (!el) continue;
     el.textContent = fmtTemp(tempCells[id]);
-    el.style.color = tempColor(tempCells[id]);
+    el.style.color = (TANK_GRID_IDS.includes(id) ? tempColorTank : tempColor)(tempCells[id]);
   }
 
   ['R1', 'R2', 'R3', 'R4'].forEach((k) => {
