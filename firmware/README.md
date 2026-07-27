@@ -1,0 +1,1 @@
+Fisiere firmware pentru OTA
