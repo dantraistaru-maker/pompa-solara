@@ -514,7 +514,7 @@
     <svg class="icon"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
     Pompe / relee
   </div>
-  <div class="card-desc">R2/R3 se citesc acum local de pe ESP32 (nu mai prin Tuya Cloud) - "fara date" pana la primul raport real dupa urmatorul reflash.</div>
+  <div class="card-desc">Citite local de pe ESP32, fara Tuya Cloud.</div>
   <div class="pump-grid">
     <div class="pump-item">
       <div class="meter-row"><span>R1 - solara</span><span id="pumpR1Label">--%</span></div>
@@ -584,7 +584,7 @@
       <span>Extinde</span>
     </button>
   </div>
-  <div class="card-desc">T1<sub>retur</sub> (ESP32) apare gol pana se conecteaza placa la raportarea catre server. T1 Colector/T2/T3/T4 (SR223, prin Tuya Cloud) s-au oprit din actualizat pe 30.07.2026 ~06:54 (cota Tuya epuizata definitiv) - raman vizibile ca istoric inghetat de atunci; T1<sub>retur</sub> ESP32 continua normal.</div>
+  <div class="card-desc">T1<sub>retur</sub> (ESP32) apare gol pana se conecteaza placa la raportarea catre server.</div>
 
   <div class="hist-preset-row" id="histPresetRow">
     <button class="hist-preset-btn active" data-hours="3" onclick="setHistPreset(3)">3h</button>
@@ -611,7 +611,7 @@
 
 <div class="card" id="pumpHistCard">
   <div class="card-title">Comportament pompe</div>
-  <div class="card-desc">Date colectate doar de acum inainte (fara istoric anterior acestei functii). Banda de sus = pornit/oprit, graficul de jos = viteza PWM (trepte). Foloseste acelasi interval de mai sus. Pompa solara (R1) inghetata din 30.07.2026 ~06:54 (Tuya Cloud oprit definitiv) - pompa secundara (ESP32) continua normal, nu depinde de Tuya.</div>
+  <div class="card-desc">Date colectate doar de acum inainte (fara istoric anterior acestei functii). Banda de sus = pornit/oprit, graficul de jos = viteza PWM (trepte). Foloseste acelasi interval de mai sus.</div>
 
   <div class="hist-legend" id="pumpHistLegend" style="margin-top:12px;"></div>
 
@@ -1018,12 +1018,24 @@ async function fetchSr223Status() {
       faults: typeof faultBits === 'number' ? FAULT_LABELS.filter((_, i) => (faultBits >> i) & 1) : [],
     });
 
-    badge.className = 'badge badge-warning';
-    badge.classList.remove('hidden');
-    badge.textContent = lastTs
-      ? 'Ultimele valori cunoscute din ' + new Date(lastTs).toLocaleString('ro-RO') +
-        ' (citire locala ESP32, fara Tuya Cloud - vezi CONTEXT_PROIECT.md 4.9/8.4).'
-      : 'Nicio citire SR223 inregistrata inca (asteapta primul raport dupa reflash-ul urmator).';
+    // De la 2026-07-30 (firmware 2026.07.30-sr223full1, confirmat ca raporteaza real), datele
+    // chiar sunt live (ESP32 raporteaza la fiecare 6 minute - SR223_REPORT_INTERVAL_MS) - nu mai
+    // afisam un banner permanent de "date invechite" cat timp ultimul raport e recent (cerinta
+    // explicita a userului, 2026-07-30 - banner-ul permanent era relevant doar in perioada de
+    // tranzitie, cat timp placa nu raporta inca). Prag: 20 min = ~3x intervalul de raportare,
+    // marja rezonabila inainte sa consideram datele cu adevarat invechite.
+    const STALE_THRESHOLD_MS = 20 * 60 * 1000;
+    const isStale = !lastTs || (Date.now() - lastTs > STALE_THRESHOLD_MS);
+    if (isStale) {
+      badge.className = 'badge badge-warning';
+      badge.classList.remove('hidden');
+      badge.textContent = lastTs
+        ? 'Ultima citire SR223 e din ' + new Date(lastTs).toLocaleString('ro-RO') +
+          ' - mai veche de 20 min, posibil placa nu mai raporteaza.'
+        : 'Nicio citire SR223 inregistrata inca (asteapta primul raport dupa reflash-ul urmator).';
+    } else {
+      badge.classList.add('hidden');
+    }
   } catch (e) {
     badge.className = 'badge badge-critical';
     badge.textContent = 'Worker-ul SR223 nu raspunde (nici istoricul) - reincercare...';
