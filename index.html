@@ -384,11 +384,11 @@
 <div id="section-sr223" class="hidden">
 <div id="sr223Badge" class="badge badge-warning">Se incarca datele SR223...</div>
 
-<!-- faultBanner ascuns din 2026-07-30 - alarmele SR223 veneau doar din Tuya Cloud /status (mort
-     definitiv, cota epuizata), nu au fost niciodata stocate in istoricul KV, deci nu mai exista
-     nicio sursa de date pentru acest banner. Ramas in DOM (nesters), usor de reactivat daca
-     apare vreodata o sursa noua (ex. citire locala extinsa sa raporteze si fault-uri). -->
-<div id="faultBanner" class="status-banner good hidden">
+<!-- Reactivat 2026-07-30 - alarmele SR223 se citesc acum local (ESP32, reportSr223LocalToWorker(),
+     dp 15 "fault") si sunt stocate in istoricul KV ca serie "fault" - vezi fetchSr223Status().
+     Pana la primul raport real de pe placa (dupa reflash-ul urmator), arata implicit "Fara alarme"
+     (fara distinctie fata de o stare reala fara alarme - aceeasi limitare avea si designul initial). -->
+<div id="faultBanner" class="status-banner good">
   <svg class="icon icon-good"><path d="M20 6 9 17l-5-5"/></svg>
   <svg class="icon icon-bad hidden"><path d="M12 9v3.5M12 16.5h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
   <span id="faultText">Fara alarme</span>
@@ -514,18 +514,18 @@
     <svg class="icon"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
     Pompe / relee
   </div>
-  <div class="card-desc">R2/R3 nu au fost niciodata inregistrate in istoric (doar live, prin Tuya Cloud - oprit definitiv 2026-07-30) - raman fara date pana la o eventuala extindere a citirii locale de pe ESP32.</div>
+  <div class="card-desc">R2/R3 se citesc acum local de pe ESP32 (nu mai prin Tuya Cloud) - "fara date" pana la primul raport real dupa urmatorul reflash.</div>
   <div class="pump-grid">
     <div class="pump-item">
       <div class="meter-row"><span>R1 - solara</span><span id="pumpR1Label">--%</span></div>
       <div class="meter-track"><div class="meter-fill" id="pumpR1Fill" style="background:var(--cat-blue)"></div></div>
     </div>
     <div class="pump-item">
-      <div class="meter-row"><span>R2</span><span id="pumpR2Label">fara date</span></div>
+      <div class="meter-row"><span>R2</span><span id="pumpR2Label">--%</span></div>
       <div class="meter-track"><div class="meter-fill" id="pumpR2Fill" style="background:var(--cat-violet)"></div></div>
     </div>
     <div class="pump-item">
-      <div class="meter-row"><span>R3</span><span id="pumpR3Label">fara date</span></div>
+      <div class="meter-row"><span>R3</span><span id="pumpR3Label">--%</span></div>
       <div class="meter-track"><div class="meter-fill" id="pumpR3Fill" style="background:var(--cat-aqua)"></div></div>
     </div>
     <div class="pump-item">
@@ -535,12 +535,9 @@
   </div>
 </div>
 
-<!-- Incalzire / Energie / Sistem ascunse din 2026-07-30 - veneau exclusiv din Tuya Cloud /status
-     (mort definitiv, cota epuizata) si nu au fost niciodata stocate in istoricul KV, deci nu
-     exista nicio valoare "ultima cunoscuta" de aratat - ar fi fost fals afisate ca "Oprit"/"0",
-     desi starea reala e pur si simplu necunoscuta. Ramase in DOM (comentate), nu sterse, ca sa
-     poata fi restaurate usor daca apare vreodata o sursa noua de date pentru ele. Vezi raportul
-     de date lipsa din conversatie (2026-07-30) pentru ce ar fi nevoie ca sa revina.
+<!-- Reactivate 2026-07-30 - toate campurile de mai jos se citesc acum local de pe ESP32
+     (reportSr223LocalToWorker()) si sunt stocate in istoricul KV, nu doar live prin Tuya Cloud
+     (mort definitiv). Raman "--"/"Oprit" pana la primul raport real dupa urmatorul reflash. -->
 <div class="card">
   <div class="card-title">Incalzire</div>
   <div class="pill-row">
@@ -574,7 +571,6 @@
     </div>
   </div>
 </div>
--->
 </div>
 
 <!-- ================= SECTIUNE ISTORIC ================= -->
@@ -973,11 +969,18 @@ function setSchematicTemp(valueId, dotId, v, colorFn) {
 // De la 2026-07-30, contul Tuya Developer si-a epuizat definitiv cota trial (0.2/0.2 USD,
 // Suspended, fara reactivare gratuita posibila) - endpoint-ul /status al worker-ului (care
 // interoga Tuya Cloud) esueaza garantat, mereu, de acum inainte. Inlocuit: sursa de date devine
-// ultimul punct cunoscut din /history (KV Cloudflare), care contine DOAR t1/t2/t3/t4/r1/r4 -
-// singurele serii care au fost vreodata inregistrate acolo (cron-ul salva doar astea). Restul
-// campurilor care existau doar in /status live (heating/energie/mod/debit/semnal/alarme si
-// R2/R3) nu au niciun echivalent istoric - raman needisponibile pana la o eventuala extindere a
-// citirii locale de pe ESP32 sa le raporteze si pe ele (vezi raportul separat de date lipsa).
+// ultimul punct cunoscut din /history (KV Cloudflare) - ESP32 raporteaza acum local (protocol
+// Tuya LAN, fara cloud) TOATE campurile posibil de citit, nu doar T1-T4/R1/R4 (cerinta explicita
+// 2026-07-30, dupa migrarea SR223 pe citire locala) - vezi reportSr223LocalToWorker() in firmware
+// si /report-sr223-local in worker.js. Pana la primul raport real (dupa urmatorul reflash al
+// placii), toate campurile noi raman null/needisponibile - asta e asteptat, nu o eroare.
+const FAULT_LABELS = [
+  'sys_high_fault', 'sys_low_fault', 'flow_fault', 'power_fault', 'cooling_fault',
+  'heating_fault', 'temp_dif_fault', 'in_temp_fault', 'eff_temp_fault',
+  'coil_temp_fault', 'ret_temp_fault', 'news_fault', 'amb_temp_fault',
+];
+const SR223_MODE_LABELS = ['cold', 'heating', 'auto']; // vezi encodarea din firmware (reportSr223LocalToWorker)
+
 async function fetchSr223Status() {
   const badge = document.getElementById('sr223Badge');
   try {
@@ -985,30 +988,42 @@ async function fetchSr223Status() {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const hist = await res.json();
     const last = (arr) => (arr && arr.length ? arr[arr.length - 1] : null);
-    const lastT1 = last(hist.t1), lastT2 = last(hist.t2), lastT3 = last(hist.t3), lastT4 = last(hist.t4);
-    const lastR1 = last(hist.r1), lastR4 = last(hist.r4);
-    const lastTs = Math.max(0, ...[lastT1, lastT2, lastT3, lastT4].filter(Boolean).map((p) => p[0]));
+    const valOf = (key) => { const p = last(hist[key]); return p ? p[1] : null; };
+
+    const lastMainTemps = ['t1', 't2', 't3', 't4'].map((k) => last(hist[k])).filter(Boolean);
+    const lastTs = lastMainTemps.length ? Math.max(...lastMainTemps.map((p) => p[0])) : 0;
+
+    const modeIdx = valOf('mode');
+    const faultBits = valOf('fault');
 
     renderSr223({
       temps: {
-        T0: null, T5: null, T6: null, TVFS: null,
-        T1_colector: lastT1 ? lastT1[1] : null,
-        T2_boilerJos: lastT2 ? lastT2[1] : null,
-        T3_boilerSus: lastT3 ? lastT3[1] : null,
-        T4_buffer: lastT4 ? lastT4[1] : null,
+        T0: valOf('t0'), T1_colector: valOf('t1'), T2_boilerJos: valOf('t2'),
+        T3_boilerSus: valOf('t3'), T4_buffer: valOf('t4'), T5: valOf('t5'),
+        T6: valOf('t6'), TVFS: valOf('tvfs'),
       },
-      pumpSpeeds: {
-        R1: lastR1 ? lastR1[1] : null,
-        R4: lastR4 ? lastR4[1] : null,
+      pumpSpeeds: { R1: valOf('r1'), R2: valOf('r2'), R3: valOf('r3'), R4: valOf('r4') },
+      heating: {
+        electricHeatingOn: valOf('eleHeating') === 1,
+        instantHeatingOn: valOf('instantHeating') === 1,
+        HR: valOf('hr') === 1,
+        HK: valOf('hk') === 1,
       },
+      energy: {
+        todayKwh: valOf('energyToday'), totalKwh: valOf('energyTotal'), co2SavedKg: valOf('co2Saved'),
+      },
+      mode: (modeIdx !== null && SR223_MODE_LABELS[modeIdx]) || null,
+      waterFlow: valOf('waterFlow'),
+      signalStrength: valOf('signal'),
+      faults: typeof faultBits === 'number' ? FAULT_LABELS.filter((_, i) => (faultBits >> i) & 1) : [],
     });
 
     badge.className = 'badge badge-warning';
     badge.classList.remove('hidden');
     badge.textContent = lastTs
       ? 'Ultimele valori cunoscute din ' + new Date(lastTs).toLocaleString('ro-RO') +
-        ' - Tuya Cloud e oprit definitiv (cota epuizata), datele SR223 nu mai sunt live. Viteze R2/R3, incalzire, energie, mod si alarme nu mai sunt disponibile.'
-      : 'Nicio citire SR223 inregistrata inca.';
+        ' (citire locala ESP32, fara Tuya Cloud - vezi CONTEXT_PROIECT.md 4.9/8.4).'
+      : 'Nicio citire SR223 inregistrata inca (asteapta primul raport dupa reflash-ul urmator).';
   } catch (e) {
     badge.className = 'badge badge-critical';
     badge.textContent = 'Worker-ul SR223 nu raspunde (nici istoricul) - reincercare...';
@@ -1062,9 +1077,7 @@ function renderSr223(d) {
     el.style.color = (TANK_GRID_IDS.includes(id) ? tempColorTank : tempColor)(tempCells[id]);
   }
 
-  // Doar R1/R4 au vreodata fost inregistrate in istoric (vezi comentariul din fetchSr223Status).
-  // R2/R3 raman pe eticheta implicita "fara date" din HTML - nu le atingem aici.
-  ['R1', 'R4'].forEach((k) => {
+  ['R1', 'R2', 'R3', 'R4'].forEach((k) => {
     const v = typeof d.pumpSpeeds[k] === 'number' ? d.pumpSpeeds[k] : null;
     const fill = document.getElementById('pump' + k + 'Fill');
     const label = document.getElementById('pump' + k + 'Label');
@@ -1072,9 +1085,38 @@ function renderSr223(d) {
     if (label) label.textContent = v === null ? 'fara date' : v + '%';
   });
 
-  // Incalzire/Energie/Sistem/alarme (faultBanner) sunt ascunse din HTML din 2026-07-30 - veneau
-  // exclusiv din Tuya Cloud /status (mort definitiv), niciodata stocate in istoric, deci `d` nu
-  // mai contine deloc aceste campuri de la fetchSr223Status() incoace. Nimic de actualizat aici.
+  const heatMap = { electricHeatingOn: 'pillEle', instantHeatingOn: 'pillInstant', HR: 'pillHR', HK: 'pillHK' };
+  for (const key in heatMap) {
+    const el = document.getElementById(heatMap[key]);
+    if (!el) continue;
+    const on = !!d.heating[key];
+    el.textContent = on ? 'Pornit' : 'Oprit';
+    el.className = 'pill-state ' + (on ? 'pill-on' : 'pill-off');
+  }
+
+  document.getElementById('energyToday').textContent = (typeof d.energy.todayKwh === 'number' ? d.energy.todayKwh.toFixed(1) : '0.0') + ' kWh';
+  document.getElementById('energyTotal').textContent = (typeof d.energy.totalKwh === 'number' ? d.energy.totalKwh.toFixed(1) : '0.0') + ' kWh';
+  document.getElementById('energyCo2').textContent = (typeof d.energy.co2SavedKg === 'number' ? d.energy.co2SavedKg.toFixed(1) : '0.0') + ' kg';
+
+  document.getElementById('sysMode').textContent = d.mode || '--';
+  document.getElementById('sysFlow').textContent = (typeof d.waterFlow === 'number' ? d.waterFlow.toFixed(1) : '0.0') + ' L/min';
+  document.getElementById('sysSignal').textContent = (typeof d.signalStrength === 'number' ? d.signalStrength : '--') + ' dB';
+
+  const faultBanner = document.getElementById('faultBanner');
+  const iconGood = faultBanner.querySelector('.icon-good');
+  const iconBad = faultBanner.querySelector('.icon-bad');
+  const faultText = document.getElementById('faultText');
+  if (d.faults && d.faults.length) {
+    faultBanner.className = 'status-banner critical';
+    iconGood.classList.add('hidden');
+    iconBad.classList.remove('hidden');
+    faultText.textContent = 'Alarme active: ' + d.faults.join(', ');
+  } else {
+    faultBanner.className = 'status-banner good';
+    iconGood.classList.remove('hidden');
+    iconBad.classList.add('hidden');
+    faultText.textContent = 'Fara alarme';
+  }
 }
 
 // saveSr223TempSet() a fost scoasa doar din interfata (2026-07-19, cerinta explicita) - campul
