@@ -383,6 +383,7 @@
 <!-- ================= SECTIUNE SR223 ================= -->
 <div id="section-sr223" class="hidden">
 <div id="sr223Badge" class="badge badge-warning">Se incarca datele SR223...</div>
+<div id="sr223IpMismatchBadge" class="badge badge-critical hidden"></div>
 
 <!-- Reactivat 2026-07-30 - alarmele SR223 se citesc acum local (ESP32, reportSr223LocalToWorker(),
      dp 15 "fault") si sunt stocate in istoricul KV ca serie "fault" - vezi fetchSr223Status().
@@ -665,6 +666,10 @@ const MQTT_URL = 'wss://59c9a354563a4abbb57553994a6dbbd5.s1.eu.hivemq.cloud:8884
 const MQTT_USER = 'pompasolara-web';
 const MQTT_PASS = '12345678';
 const STATUS_TOPIC = 'pompasolara/status';
+// Trebuie tinut manual sincronizat cu SR223_LOCAL_IP din PompaSolara.ino - daca placa raporteaza
+// alt IP descoperit (sr223DiscoveredIp) decat cel de mai jos, inseamna ca SR223 si-a schimbat
+// adresa (vezi investigatia 2026-08-03) si firmware-ul trebuie actualizat cu noul IP.
+const SR223_EXPECTED_IP = '192.168.1.132';
 const SETTINGS_TOPIC = 'pompasolara/settings/set';
 const OTA_TOPIC = 'pompasolara/ota/set';
 const THEME_KEY = 'pompaTheme';
@@ -808,6 +813,15 @@ client.on('message', (topic, payload) => {
     document.getElementById('pwmStep').value = d.pwmStep;
     document.getElementById('hysteresis').value = d.hysteresis;
     document.getElementById('tempFilterAlpha').value = d.tempFilterAlpha;
+  }
+
+  const ipMismatchBadge = document.getElementById('sr223IpMismatchBadge');
+  if (d.sr223DiscoveredIp && d.sr223DiscoveredIp !== SR223_EXPECTED_IP) {
+    ipMismatchBadge.textContent = 'SR223 a fost detectat pe un alt IP (' + d.sr223DiscoveredIp
+      + ') decat cel configurat (' + SR223_EXPECTED_IP + ') - firmware-ul trebuie actualizat cu noul IP.';
+    ipMismatchBadge.classList.remove('hidden');
+  } else {
+    ipMismatchBadge.classList.add('hidden');
   }
 
   document.getElementById('otaVersion').textContent = d.firmwareVersion || '--';
