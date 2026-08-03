@@ -679,6 +679,19 @@ let lastStatus = null;
 let lastMessageTime = null;
 const DEVICE_TIMEOUT_MS = 5000; // ESP32 publica la 1s; 5x marja de siguranta
 
+// Campurile SR223 care NU vin prin MQTT (doar prin worker, fetchSr223Status(), la 20s) - pastrate
+// separat ca sa poata fi combinate cu temperaturile/releele care vin live prin MQTT (2026-08-03),
+// fara sa se goleasca reciproc la fiecare actualizare din oricare din cele doua surse. Valori
+// implicite neutre pana la primul poll reusit al worker-ului.
+let sr223NonMqttFields = {
+  heating: { electricHeatingOn: false, instantHeatingOn: false, HR: false, HK: false },
+  energy: { todayKwh: null, totalKwh: null, co2SavedKg: null },
+  mode: null,
+  waterFlow: null,
+  signalStrength: null,
+  faults: [],
+};
+
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
@@ -822,6 +835,22 @@ client.on('message', (topic, payload) => {
     ipMismatchBadge.classList.remove('hidden');
   } else {
     ipMismatchBadge.classList.add('hidden');
+  }
+
+  // Temperaturi+relee SR223 LIVE prin MQTT (2026-08-03) - actualizate la fiecare mesaj (1s), desi
+  // valoarea reala se schimba doar la ~60s (cat de des interogam SR223 in firmware). Restul
+  // campurilor SR223 (incalzire/energie/mod/alarme) nu sunt in acest mesaj - le pastram din ultima
+  // citire prin worker (fetchSr223Status(), la 20s, vezi sr223NonMqttFields mai jos) ca sa nu le
+  // golim la fiecare tick MQTT.
+  if (d.sr223Valid) {
+    renderSr223({
+      temps: {
+        T0: d.sr223T0, T1_colector: d.sr223T1, T2_boilerJos: d.sr223T2, T3_boilerSus: d.sr223T3,
+        T4_buffer: d.sr223T4, T5: d.sr223T5, T6: d.sr223T6, TVFS: d.sr223Tvfs,
+      },
+      pumpSpeeds: { R1: d.sr223R1, R2: d.sr223R2, R3: d.sr223R3, R4: d.sr223R4 },
+      ...sr223NonMqttFields,
+    });
   }
 
   document.getElementById('otaVersion').textContent = d.firmwareVersion || '--';
@@ -1007,13 +1036,9 @@ async function fetchSr223Status() {
     const modeIdx = valOf('mode');
     const faultBits = valOf('fault');
 
-    renderSr223({
-      temps: {
-        T0: valOf('t0'), T1_colector: valOf('t1'), T2_boilerJos: valOf('t2'),
-        T3_boilerSus: valOf('t3'), T4_buffer: valOf('t4'), T5: valOf('t5'),
-        T6: valOf('t6'), TVFS: valOf('tvfs'),
-      },
-      pumpSpeeds: { R1: valOf('r1'), R2: valOf('r2'), R3: valOf('r3'), R4: valOf('r4') },
+    // Cache-uite separat (2026-08-03) - reutilizate de handler-ul MQTT ca sa combine temperaturile/
+    // releele LIVE (de acolo) cu aceste campuri, care raman disponibile doar prin worker (la 20s).
+    sr223NonMqttFields = {
       heating: {
         electricHeatingOn: valOf('eleHeating') === 1,
         instantHeatingOn: valOf('instantHeating') === 1,
@@ -1027,6 +1052,16 @@ async function fetchSr223Status() {
       waterFlow: valOf('waterFlow'),
       signalStrength: valOf('signal'),
       faults: typeof faultBits === 'number' ? FAULT_LABELS.filter((_, i) => (faultBits >> i) & 1) : [],
+    };
+
+    renderSr223({
+      temps: {
+        T0: valOf('t0'), T1_colector: valOf('t1'), T2_boilerJos: valOf('t2'),
+        T3_boilerSus: valOf('t3'), T4_buffer: valOf('t4'), T5: valOf('t5'),
+        T6: valOf('t6'), TVFS: valOf('tvfs'),
+      },
+      pumpSpeeds: { R1: valOf('r1'), R2: valOf('r2'), R3: valOf('r3'), R4: valOf('r4') },
+      ...sr223NonMqttFields,
     });
 
     // Fara banner informativ pe succes (cerinta explicita a utilizatorului, 2026-07-30: proiect
