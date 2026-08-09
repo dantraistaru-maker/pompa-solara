@@ -379,6 +379,11 @@
     <input type="number" step="0.1" min="0" max="20" id="hysteresis">
     <label>Filtru temperatura (0,01-1) - mai mic = mai lin, mai lent</label>
     <input type="number" step="0.05" min="0.01" max="1" id="tempFilterAlpha">
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px">
+      <input type="checkbox" id="sr223Persistent" style="width:auto;margin:0">
+      Sesiune permanenta cu SR223 (recomandat pornit)
+    </label>
+    <div style="font-size:0.72em;opacity:0.65;margin-top:4px">Tine o singura conexiune deschisa cu SR223, in loc sa reconecteze la fiecare minut - reconectarile repetate au infundat modulul Tuya pe 09.08.2026. Opreste doar daca citirile devin instabile.</div>
     <button class="save-btn" onclick="saveProtection()">Salveaza</button>
     <div class="msg" id="msgProtection"></div>
     <div style="margin-top:8px;font-size:0.72em;opacity:0.6;cursor:pointer;text-decoration:underline" onclick="forgetControlCreds()">Uita datele de control salvate pe acest dispozitiv</div>
@@ -811,6 +816,10 @@ client.on('message', (topic, payload) => {
   const valveNote = document.getElementById('valveNote');
   if (d.testOverride) {
     valveNote.textContent = '';
+  } else if (d.sr223StateKnown === false) {
+    // Fail-open (firmware 2026.08.09): citirea SR223 a esuat, deci starea vanei e NECUNOSCUTA -
+    // altceva decat "vana e pe boiler". Placa lasa PWM-ul sa urmeze curba in loc sa-l forteze pe 0.
+    valveNote.textContent = 'Starea vanei e necunoscuta (citirea SR223 esueaza) - pompa urmeaza curba de temperatura.';
   } else if (d.valveOnSecondary === false) {
     const target = typeof d.targetPumpPercent === 'number' ? Math.round(d.targetPumpPercent) : null;
     valveNote.textContent = 'Fara alimentare de forta - vana SR223 e pe circuitul boilerului'
@@ -830,6 +839,9 @@ client.on('message', (topic, payload) => {
     document.getElementById('pwmStep').value = d.pwmStep;
     document.getElementById('hysteresis').value = d.hysteresis;
     document.getElementById('tempFilterAlpha').value = d.tempFilterAlpha;
+    // Implicit bifat daca placa nu raporteaza campul (firmware mai vechi) - sesiunea persistenta e
+    // starea normala, deci absenta informatiei nu trebuie sa arate ca "oprit".
+    document.getElementById('sr223Persistent').checked = d.sr223Persistent !== false;
   }
 
   // Starea citirii locale SR223 (rescris 2026-08-04). Nu mai comparam IP-uri cu o constanta din
@@ -839,10 +851,25 @@ client.on('message', (topic, payload) => {
   const fail = d.sr223LastFail;
   if (fail && fail !== 'ok' && fail !== 'none') {
     const at = d.sr223ActiveIp ? ' (' + d.sr223ActiveIp + ')' : '';
-    sr223FailBadge.textContent = fail === 'connect'
+    // Vechimea ultimei citiri REUSITE (camp nou, firmware 2026.08.09). Pe 09.08 au trecut ~4 ore
+    // pana s-a observat caderea - cu "de cat timp" scris explicit se vede din prima daca e un blip
+    // sau o cadere reala, fara sa fie nevoie de grafic.
+    let age = '';
+    if (typeof d.sr223LastOkAgeSec === 'number' && d.sr223LastOkAgeSec >= 0) {
+      const m = Math.round(d.sr223LastOkAgeSec / 60);
+      age = m < 1 ? ' Ultima citire reusita: acum cateva secunde.'
+          : (m < 60 ? ` Ultima citire reusita: acum ${m} min.`
+                    : ` Ultima citire reusita: acum ${Math.floor(m / 60)} h ${m % 60} min.`);
+    }
+    sr223FailBadge.textContent = (fail === 'connect'
       ? 'SR223 nu raspunde la adresa curenta' + at + ' - placa cauta automat adresa noua. Daca mesajul persista peste ~10 minute, verifica daca SR223 e pornit si conectat la WiFi.'
       : 'Citirea SR223' + at + ' esueaza (motiv: ' + fail + ').'
-        + (fail === 'hmac' ? ' Cheia locala (local_key) pare invalida - posibil SR223 re-asociat in Smart Life.' : '');
+        + (fail === 'hmac' ? ' Cheia locala (local_key) pare invalida - posibil SR223 re-asociat in Smart Life.' : '')
+        // Semnatura blocajului din 09.08.2026: TCP-ul se conecteaza, dar modulul Tuya nu mai
+        // raspunde la negocierea de sesiune. Singura rezolvare gasita atunci: intreruperea
+        // alimentarii SR223. Scriem asta direct in banner ca sa nu se mai piarda timp cu diagnostic.
+        + (fail === 'handshake_no_resp' ? ' Modulul Tuya al SR223 pare infundat (accepta conexiunea, dar nu raspunde). Daca persista, intrerupe si reia alimentarea SR223 - asta l-a deblocat pe 09.08.2026.' : ''))
+      + age;
     sr223FailBadge.classList.remove('hidden');
   } else {
     sr223FailBadge.classList.add('hidden');
@@ -950,7 +977,8 @@ function saveProtection() {
   publishControl(SETTINGS_TOPIC, {
     pwmStep: parseFloat(document.getElementById('pwmStep').value),
     hysteresis: parseFloat(document.getElementById('hysteresis').value),
-    tempFilterAlpha: parseFloat(document.getElementById('tempFilterAlpha').value)
+    tempFilterAlpha: parseFloat(document.getElementById('tempFilterAlpha').value),
+    sr223Persistent: document.getElementById('sr223Persistent').checked
   }, 'msgProtection');
 }
 function sendOtaUpdate() {
