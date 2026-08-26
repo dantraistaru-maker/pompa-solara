@@ -334,7 +334,7 @@
   </div>
 
   <div class="mini-stats">
-    <div class="mini-stat"><span class="mini-label">Brut</span><span class="mini-value" id="tempRaw">--</span></div>
+    <div class="mini-stat"><span class="mini-label">Medie 10s</span><span class="mini-value" id="tempRaw">--</span></div>
     <div class="mini-stat"><span class="mini-label">Filtrat</span><span class="mini-value" id="tempFiltered">--</span></div>
   </div>
 </div>
@@ -357,6 +357,16 @@
   <div class="card">
     <div class="card-title">Curba de viteza</div>
     <div class="card-desc">Determina viteza pompei in functie de temperatura colectorului.</div>
+    <div id="avgT1espBox" style="margin:10px 0 14px;padding:10px 12px;border-radius:10px;background:rgba(127,127,127,0.10)">
+      <div style="font-size:0.78em;opacity:0.75">Media T1 ESP32 &middot; 7 zile &middot; intervalul 11:00-18:00</div>
+      <div id="avgT1espValue" style="font-size:1.5em;font-weight:600;margin-top:2px">--</div>
+      <div id="avgT1espDays" style="font-size:0.7em;opacity:0.6;margin-top:4px"></div>
+      <div style="border-top:1px solid rgba(127,127,127,0.25);margin-top:10px;padding-top:8px">
+        <div style="font-size:0.78em;opacity:0.75">Tmin propus, pentru cicluri rare</div>
+        <div id="tminSuggestValue" style="font-size:1.25em;font-weight:600;margin-top:2px">--</div>
+        <div id="tminSuggestWhy" style="font-size:0.7em;opacity:0.6;margin-top:4px"></div>
+      </div>
+    </div>
     <label>Tmin (&deg;C) - pornire pompa</label>
     <input type="number" step="0.5" id="tMin">
     <label>Tmax (&deg;C) - viteza maxima</label>
@@ -843,6 +853,9 @@ client.on('message', (topic, payload) => {
     // starea normala, deci absenta informatiei nu trebuie sa arate ca "oprit".
     document.getElementById('sr223Persistent').checked = d.sr223Persistent !== false;
   }
+  // Tmin propus depinde de parametrii curbei/protectiei, care pot fi schimbati oricand din UI -
+  // deci se recalculeaza la fiecare status, nu doar o data pe zi cand se reface media.
+  renderTminSuggestion(lastAvgT1esp, d);
 
   // Starea citirii locale SR223 (rescris 2026-08-04). Nu mai comparam IP-uri cu o constanta din
   // pagina - placa isi corecteaza singura adresa. Aratam ceva DOAR cand citirea chiar esueaza,
@@ -1693,6 +1706,161 @@ function closeHistFullscreen() {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !document.getElementById('histFullscreen').classList.contains('hidden')) closeHistFullscreen();
 });
+
+// --- Media T1 ESP32 pe 7 zile, fereastra 11:00-18:00 (cerinta utilizator, 2026-08-26) --------
+// Scop: reper SEZONIER pentru alegerea lui Tmin. Ciclarea pornit-oprit a pompei apare cand Tmin
+// cade IN banda de lucru a returului; media ultimelor 7 zile, in intervalul cu soare, arata unde
+// e acea banda in perioada curenta a anului, deci cat de jos trebuie tinut Tmin ca sa ramana sub ea.
+//
+// Se calculeaza pe ZILE CALENDARISTICE INCHEIATE (ieri, inapoi 7 zile), nu pe "ultimele 168 de ore":
+// altfel cifra s-ar schimba de la o ora la alta in cursul zilei, iar cerinta a fost o actualizare
+// ZILNICA. Se pastreaza in localStorage cu data calculului, deci se descarca o singura data pe zi,
+// la prima deschidere a paginii.
+//
+// Cererea foloseste `&series=t1r` (adaugat in worker in aceeasi zi): fara filtru, 7 zile inseamna
+// ~2,5 MB (toate seriile SR223), cu filtru ~75 KB - diferenta conteaza pe telefon, pe date mobile.
+const AVG_T1ESP_KEY = 'avgT1esp7d';
+let lastAvgT1esp = null;   // ultima medie calculata - Tmin propus are nevoie si de ea, si de parametrii live
+const AVG_HOUR_FROM = 11;   // inclusiv
+const AVG_HOUR_TO = 18;     // exclusiv
+
+function localDayKey(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function localMidnight(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+
+// Cel mai mic T1-ESP32 masurat CAT TIMP POMPA ERA ALIMENTATA (vana pe secundar), in fereastra
+// 11:00-18:00. Asta, nu media, e marimea care decide ciclarea: pompa se opreste exact cand
+// temperatura scade sub Tmin, deci Tmin trebuie tinut sub minimul benzii de lucru.
+// Starea vanei vine din seria `pump2` (eveniment: [ts, pwm, vana]), citita ca functie in trepte -
+// pentru fiecare esantion de temperatura conteaza ultimul eveniment de la sau inainte de el.
+function computeOperatingMin(t1rPoints, pump2Points) {
+  const events = (pump2Points || []).slice().sort((a, b) => a[0] - b[0]);
+  if (!events.length) return null;
+  let min = null, n = 0, i = 0, valveOn = null;
+  for (const pt of (t1rPoints || []).slice().sort((a, b) => a[0] - b[0])) {
+    while (i < events.length && events[i][0] <= pt[0]) { valveOn = events[i][2] === 1; i++; }
+    if (valveOn !== true) continue;              // vana inchisa (sau inca necunoscuta) - ignoram
+    const d = new Date(pt[0]), h = d.getHours();
+    if (h < AVG_HOUR_FROM || h >= AVG_HOUR_TO) continue;
+    const v = pt[1];
+    if (typeof v !== 'number' || !isFinite(v)) continue;
+    n++;
+    if (min === null || v < min) min = v;
+  }
+  return n >= 30 ? { min, samples: n } : null;   // sub 30 de esantioane nu propunem nimic
+}
+
+// Tmin propus. Se compune EXACT din parametrii curbei si ai protectiei plus masuratoare:
+//
+//   Tmin_propus = min_masurat_in_functionare − banda_protectie − marja_esantionare
+//
+// unde banda de protectie e distanta reala pornire-oprire, dedusa din cod:
+//   banda = (pwmStep − pwmMin) × (Tmax − Tmin) / (100 − pwmMin) + histerezis / 2
+// (pragul de OPRIRE e exact Tmin; cel de PORNIRE e Tmin + banda - vezi CONTEXT_PROIECT.md 4.2).
+// O banda mai larga inseamna repornire mai tarzie, deci o oprire costa mai mult => propunem un
+// Tmin proportional mai jos. Asa propunerea raspunde chiar la parametrii pe care ii reglezi.
+//
+// Marja de 2 degC nu e prudenta vaga, e corectie de esantionare: temperatura ajunge in istoric o
+// data la 4 minute, iar oscilatia reala are perioada de ~9 minute - masurat pe 7 zile, doar ~14%
+// din caderile sub prag au fost prinse de un esantion. Deci minimul adevarat e sub cel masurat.
+const TMIN_SAMPLING_MARGIN = 2.0;
+
+function curveBandWidth(tMinV, tMaxV, pwmMinV, pwmStepV, hystV) {
+  if (![tMinV, tMaxV, pwmMinV, pwmStepV, hystV].every((x) => typeof x === 'number' && isFinite(x))) return null;
+  if (tMaxV <= tMinV || pwmMinV >= 100) return null;
+  return (pwmStepV - pwmMinV) * (tMaxV - tMinV) / (100 - pwmMinV) + hystV / 2;
+}
+
+function renderTminSuggestion(avgInfo, d) {
+  const val = document.getElementById('tminSuggestValue');
+  const why = document.getElementById('tminSuggestWhy');
+  if (!val || !why) return;
+  const band = d ? curveBandWidth(d.tMin, d.tMax, d.pwmMin, d.pwmStep, d.hysteresis) : null;
+  const op = avgInfo && avgInfo.opMin;
+  if (!op || band === null) {
+    val.textContent = '--';
+    why.textContent = op ? 'astept parametrii curbei de la placa' : 'date insuficiente cu pompa alimentata';
+    return;
+  }
+  // rotunjire in JOS la 0,5 degC: intre doua variante, cea mai joasa e cea sigura
+  const raw = op.min - band - TMIN_SAMPLING_MARGIN;
+  const suggested = Math.floor(raw * 2) / 2;
+  const nr = (x) => x.toFixed(1).replace('.', ',');
+  val.textContent = nr(suggested) + ' °C';
+  const now = typeof d.tMin === 'number' ? d.tMin : null;
+  const verdict = now === null ? ''
+    : (now <= suggested ? ' — Tmin actual (' + nr(now) + ') e deja sub prag, in regula.'
+                        : ' — Tmin actual (' + nr(now) + ') e PESTE: asteapta-te la cicluri dese.');
+  why.textContent = 'minim masurat in functionare ' + nr(op.min) + ' − banda pornire-oprire '
+    + nr(band) + ' − marja esantionare ' + nr(TMIN_SAMPLING_MARGIN) + verdict;
+}
+
+function renderAvgT1esp(o) {
+  lastAvgT1esp = o;
+  const val = document.getElementById('avgT1espValue');
+  const daysEl = document.getElementById('avgT1espDays');
+  if (!val || !daysEl) return;
+  if (!o || typeof o.avg !== 'number') {
+    val.textContent = '--';
+    daysEl.textContent = o && o.error ? o.error : '';
+    return;
+  }
+  val.textContent = o.avg.toFixed(1).replace('.', ',') + ' °C';
+  daysEl.textContent = o.dayAvgs && o.dayAvgs.length
+    ? 'pe zile: ' + o.dayAvgs.map((d) => d.day.slice(5) + ' ' + d.avg.toFixed(1).replace('.', ',')).join(' · ')
+    : '';
+}
+
+async function updateAvgT1esp() {
+  const todayKey = localDayKey(new Date());
+  try {
+    const cached = JSON.parse(localStorage.getItem(AVG_T1ESP_KEY) || 'null');
+    if (cached && cached.day === todayKey) { renderAvgT1esp(cached); return; }
+  } catch (e) { /* localStorage indisponibil (mod privat) - recalculam de fiecare data */ }
+
+  const to = localMidnight(new Date()).getTime();
+  const from = to - 7 * 24 * 3600 * 1000;
+  try {
+    // si `pump2`: contine starea vanei (elementul [2]), de care avem nevoie ca sa stim cand era
+    // pompa efectiv alimentata. E o serie pe eveniment, deci mica (~1.000 puncte pe 7 zile).
+    const res = await fetch(`${SR223_WORKER}/history?from=${from}&to=${to}&series=t1r,pump2`,
+                            { headers: { 'X-Proxy-Token': SR223_TOKEN } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const pts = (data && data.t1r) || [];
+
+    const perDay = {};
+    for (const pt of pts) {
+      const v = pt[1];
+      if (typeof v !== 'number' || !isFinite(v)) continue;
+      const d = new Date(pt[0]);
+      const h = d.getHours();  // ora LOCALA - filtrarea se face in browser tocmai ca sa nu depinda
+      if (h < AVG_HOUR_FROM || h >= AVG_HOUR_TO) continue;  // de fusul orar/DST al worker-ului
+      const k = localDayKey(d);
+      (perDay[k] = perDay[k] || []).push(v);
+    }
+    const dayAvgs = Object.keys(perDay).sort().map((k) => ({
+      day: k,
+      avg: perDay[k].reduce((a, b) => a + b, 0) / perDay[k].length,
+      n: perDay[k].length,
+    }));
+    // Media pe TOATE esantioanele, nu media mediilor zilnice: esantionarea e uniforma (un punct la
+    // ~4 minute), deci cele doua sunt practic identice, dar asta ramane corecta si daca o zi are
+    // date lipsa (placa deconectata) - acea zi cantareste proportional cu cat s-a masurat efectiv.
+    const all = dayAvgs.reduce((acc, d) => acc + d.avg * d.n, 0);
+    const n = dayAvgs.reduce((acc, d) => acc + d.n, 0);
+    const result = n > 0
+      ? { day: todayKey, avg: all / n, dayAvgs, samples: n, opMin: computeOperatingMin(pts, data.pump2 || []) }
+      : { day: todayKey, error: 'fara date in intervalul 11:00-18:00' };
+    try { localStorage.setItem(AVG_T1ESP_KEY, JSON.stringify(result)); } catch (e) {}
+    renderAvgT1esp(result);
+  } catch (e) {
+    renderAvgT1esp({ error: 'media indisponibila (server istoric)' });
+  }
+}
+updateAvgT1esp();
 
 function showSection(name) {
   document.querySelectorAll('#mainNav .seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.section === name));
