@@ -316,6 +316,10 @@
   <button class="seg-btn" data-section="istoric" onclick="showSection('istoric')">Istoric</button>
 </div>
 
+<!-- Alarma de supraincalzire (firmware 2026.10.26-alarm1): in afara oricarei sectiuni, ca sa se vada
+     indiferent de ce tab e deschis. Aceeasi stare vine din statusul MQTT (alarmActive). -->
+<div id="alarmBanner" class="badge badge-critical hidden" style="font-size:1em"></div>
+
 <!-- ================= SECTIUNE POMPA ESP32 ================= -->
 <div id="section-pompa">
 <div id="connBadge" class="badge badge-critical hidden">Conectare la broker...</div>
@@ -351,6 +355,7 @@
 <div class="seg" role="tablist">
   <button class="seg-btn active" data-tab="curve" onclick="showTab('curve')">Curba PWM</button>
   <button class="seg-btn" data-tab="protect" onclick="showTab('protect')">Protectie pompa</button>
+  <button class="seg-btn" data-tab="alarm" onclick="showTab('alarm')">Alarma</button>
 </div>
 
 <div id="tab-curve">
@@ -396,6 +401,38 @@
     <div style="font-size:0.72em;opacity:0.65;margin-top:4px">Tine o singura conexiune deschisa cu SR223, in loc sa reconecteze la fiecare minut - reconectarile repetate au infundat modulul Tuya pe 09.08.2026. Opreste doar daca citirile devin instabile.</div>
     <button class="save-btn" onclick="saveProtection()">Salveaza</button>
     <div class="msg" id="msgProtection"></div>
+    <div style="margin-top:8px;font-size:0.72em;opacity:0.6;cursor:pointer;text-decoration:underline" onclick="forgetControlCreds()">Uita datele de control salvate pe acest dispozitiv</div>
+  </div>
+</div>
+
+<div id="tab-alarm" class="hidden">
+  <div class="card">
+    <div class="card-title">Alarma supraincalzire colector</div>
+    <div class="card-desc">Trimite o alerta pe telefon (Pushover, prioritate maxima - se repeta din 30 in 30 de secunde pana o confirmi) cand temperatura colectorului sta peste prag 2 minute fara intrerupere. Foloseste cea mai mare valoare dintre T1 de la SR223 si T1 retur ESP32. Daca placa sau WiFi-ul cad, alarma NU poate trimite nimic.</div>
+    <div id="alarmState" style="margin:10px 0 4px;padding:10px 12px;border-radius:10px;background:rgba(127,127,127,0.10);font-size:0.85em;line-height:1.5">--</div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px">
+      <input type="checkbox" id="alarmEnabled" style="width:auto;margin:0">
+      Alarma activa
+    </label>
+    <label>Prag (&deg;C) - alerta cand T1 ajunge la sau peste</label>
+    <input type="number" step="1" min="50" max="130" id="alarmThreshold">
+    <div style="font-size:0.72em;opacity:0.65;margin-top:4px">Alarma se incheie (si se trimite mesaj de incheiere) dupa ce temperatura sta 1 minut cu 5&deg;C sub prag.</div>
+    <button class="save-btn" onclick="saveAlarm()">Salveaza</button>
+    <div class="msg" id="msgAlarm"></div>
+
+    <div style="border-top:1px solid rgba(127,127,127,0.25);margin-top:16px;padding-top:12px">
+      <div class="card-title">Cont Pushover</div>
+      <div class="card-desc" id="pushoverStatus">--</div>
+      <label>API Token (aplicatia Pompa_solara)</label>
+      <input type="password" id="poToken" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="30 de caractere">
+      <label>User Key (contul tau)</label>
+      <input type="password" id="poUser" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="30 de caractere">
+      <div style="font-size:0.72em;opacity:0.65;margin-top:4px">Se trimit o singura data catre placa si raman doar in memoria ei - placa nu le publica niciodata inapoi. Campurile raman goale; completeaza ambele doar cand vrei sa le schimbi.</div>
+      <button class="save-btn" onclick="savePushover()">Salveaza cheile</button>
+      <div class="msg" id="msgPushover"></div>
+      <button class="save-btn" style="margin-top:6px" onclick="sendAlarmTest()">Trimite alerta de test</button>
+      <div class="msg" id="msgAlarmTest"></div>
+    </div>
     <div style="margin-top:8px;font-size:0.72em;opacity:0.6;cursor:pointer;text-decoration:underline" onclick="forgetControlCreds()">Uita datele de control salvate pe acest dispozitiv</div>
   </div>
 </div>
@@ -751,6 +788,7 @@ function showTab(name) {
   document.querySelectorAll('.seg:not(.seg-main) .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.getElementById('tab-curve').classList.toggle('hidden', name !== 'curve');
   document.getElementById('tab-protect').classList.toggle('hidden', name !== 'protect');
+  document.getElementById('tab-alarm').classList.toggle('hidden', name !== 'alarm');
 }
 function applyTheme(mode) {
   if (mode === 'light' || mode === 'dark') {
@@ -904,6 +942,8 @@ client.on('message', (topic, payload) => {
     });
   }
 
+  renderAlarm(d);
+
   document.getElementById('otaVersion').textContent = d.firmwareVersion || '--';
   const otaErrorBadge = document.getElementById('otaErrorBadge');
   if (d.otaError) {
@@ -949,7 +989,7 @@ function promptControlCredentials() {
   return true;
 }
 
-function publishControl(topic, body, msgId) {
+function publishControl(topic, body, msgId, onSent) {
   const msg = document.getElementById(msgId);
   if (!promptControlCredentials()) {
     msg.textContent = 'Anulat - credentiale de control necesare.';
@@ -970,6 +1010,7 @@ function publishControl(topic, body, msgId) {
       localStorage.setItem(CONTROL_CREDS_KEY, JSON.stringify({ user: controlUser, pass: controlPass }));
       msg.textContent = 'Trimis!';
       setTimeout(() => msg.textContent = '', 2000);
+      if (onSent) onSent();
     });
   });
   ctrlClient.on('error', () => {
@@ -993,6 +1034,76 @@ function saveProtection() {
     tempFilterAlpha: parseFloat(document.getElementById('tempFilterAlpha').value),
     sr223Persistent: document.getElementById('sr223Persistent').checked
   }, 'msgProtection');
+}
+// ---- Alarma de supraincalzire (firmware 2026.10.26-alarm1) ----
+// Starea vine din statusul MQTT: alarmEnabled, alarmThreshold, alarmActive, alarmTemp (null daca
+// nicio sursa valida), pushoverSet (token+cheie salvate in placa - valorile NU sunt publicate
+// niciodata), alarmInfo (ultimul eveniment, text scurt din firmware).
+function renderAlarm(d) {
+  const banner = document.getElementById('alarmBanner');
+  const state = document.getElementById('alarmState');
+  const push = document.getElementById('pushoverStatus');
+  if (d.alarmEnabled === undefined) {
+    // Firmware mai vechi, fara alarma - nu afisam nimic inselator.
+    banner.classList.add('hidden');
+    state.textContent = 'Placa ruleaza un firmware fara alarma - actualizeaza-o (versiunea 2026.10.26-alarm1 sau mai noua).';
+    push.textContent = '--';
+    return;
+  }
+  const fmt = (v) => (typeof v === 'number' ? v.toFixed(1) + '°C' : 'necunoscuta');
+  if (d.alarmActive) {
+    banner.textContent = '⚠ ALARMA: temperatura colector ' + fmt(d.alarmTemp) + ' (prag ' + fmt(d.alarmThreshold)
+      + '). Verifica pompa si circulatia!' + (d.pushoverSet ? '' : ' (Pushover neconfigurat - nu se poate trimite alerta)');
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+  let status = d.alarmActive ? 'ALARMA ACTIVA' : (d.alarmEnabled ? 'normal - sub prag' : 'dezactivata');
+  state.textContent = 'Stare: ' + status + ' · Temperatura folosita: ' + fmt(d.alarmTemp)
+    + ' · Prag: ' + fmt(d.alarmThreshold)
+    + (d.alarmInfo ? ' · Ultimul eveniment: ' + d.alarmInfo : '');
+  push.textContent = d.pushoverSet
+    ? 'Token si User Key salvate in placa. Foloseste "Trimite alerta de test" ca sa verifici ca ajunge pe telefon.'
+    : 'Neconfigurat - fara token si User Key alarma nu poate trimite nimic. Completeaza campurile de mai jos.';
+  if (!editing) {
+    document.getElementById('alarmEnabled').checked = d.alarmEnabled !== false;
+    document.getElementById('alarmThreshold').value = d.alarmThreshold;
+  }
+}
+function saveAlarm() {
+  const msg = document.getElementById('msgAlarm');
+  const thr = parseFloat(document.getElementById('alarmThreshold').value);
+  if (!(thr >= 50 && thr <= 130)) {
+    msg.textContent = 'Prag invalid - introdu o valoare intre 50 si 130 °C.';
+    setTimeout(() => msg.textContent = '', 3000);
+    return;
+  }
+  publishControl(SETTINGS_TOPIC, {
+    alarmEnabled: document.getElementById('alarmEnabled').checked,
+    alarmThreshold: thr
+  }, 'msgAlarm');
+}
+function savePushover() {
+  const msg = document.getElementById('msgPushover');
+  const tokEl = document.getElementById('poToken');
+  const usrEl = document.getElementById('poUser');
+  const tok = tokEl.value.trim();
+  const usr = usrEl.value.trim();
+  const ok = (s) => /^[A-Za-z0-9]{20,64}$/.test(s);
+  if (!ok(tok) || !ok(usr)) {
+    msg.textContent = 'Completeaza AMBELE campuri: litere si cifre, fara spatii (de obicei 30 de caractere).';
+    setTimeout(() => msg.textContent = '', 4000);
+    return;
+  }
+  // Golim campurile DOAR dupa un publish reusit: daca utilizatorul anuleaza promptul cu parola de
+  // control sau parola e gresita, ce a scris ramane acolo si nu trebuie retastat.
+  publishControl(SETTINGS_TOPIC, { poToken: tok, poUser: usr }, 'msgPushover', () => {
+    tokEl.value = '';
+    usrEl.value = '';
+  });
+}
+function sendAlarmTest() {
+  publishControl(SETTINGS_TOPIC, { alarmTest: true }, 'msgAlarmTest');
 }
 function sendOtaUpdate() {
   const url = document.getElementById('otaUrl').value.trim();
